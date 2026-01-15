@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur Carte OSM (Vectoriel)</title>
+
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Plugin Recherche (GeoSearch) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+    <!-- Leaflet Draw CSS & JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --surface: #ffffff;
+            --background: #f3f4f6;
+            --text: #1f2937;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: flex;
+            background-color: var(--background);
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 350px;
+            background-color: var(--surface);
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            margin-top: 0;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .info {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+
+        .warning-box {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 0.85rem;
+            color: #92400e;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            width: 100%;
+            transition: background-color 0.2s;
+            margin-bottom: 8px;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        button:hover {
+            background-color: #7c3aed;
+        }
+
+        button.secondary {
+            background-color: #e5e7eb;
+            color: #374151;
+            text-align: center;
+            justify-content: center;
+        }
+
+        button.secondary:hover {
+            background-color: #d1d5db;
+        }
+
+        #map {
+            flex-grow: 1;
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+        }
+
+        .leaflet-control-geocoder {
+            z-index: 2000;
+        }
+
+        .layer-btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .layer-btn-group button {
+            width: 50%;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="sidebar">
+        <h1>Carte Laser (OSM) V5 ⭐</h1>
+
+        <div class="control-group">
+            <h3>1. Localisation</h3>
+            <div class="info">Utilisez la loupe sur la carte pour chercher une ville.</div>
+        </div>
+
+        <div class="control-group">
+            <h3>2. Zone de Sélection</h3>
+            <div class="info" style="margin-bottom:10px;">
+                Dessinez la forme de découpe pour votre carte.
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom:10px;">
+                <button onclick="drawPentagram()"
+                    style="background-color: #d946ef; text-align:center; justify-content:center;">
+                    ⭐ Tracer Pentagramme
+                </button>
+                <button onclick="drawRectangle()" class="secondary" title="Rectangle Standard">
+                    ⬛ Carré
+                </button>
+            </div>
+
+            <div id="zone-status" class="info" style="color: red;">Aucune zone dessinée.</div>
+        </div>
+
+        <div class="control-group">
+            <h3>3. Exports Vectoriels Séparés</h3>
+            <div class="info" style="margin-bottom:15px;">
+                Le fichier SVG sera <strong>automatiquement découpé</strong> à la forme choisie (Étoile/Carré).
+            </div>
+
+            <button onclick="downloadSVG('routes_grands')">
+                <span>🛣️ Autoroutes & Nationales</span>
+                <small>Epais</small>
+            </button>
+            <button onclick="downloadSVG('routes_secondaires')">
+                <span>🚗 Routes Principales</span>
+                <small>Moyen</small>
+            </button>
+            <button onclick="downloadSVG('routes_locales')">
+                <span>🏘️ Rues Locales</span>
+                <small>Fin</small>
+            </button>
+            <div style="height:10px;"></div>
+            <button onclick="downloadSVG('eau')" style="background-color: #3b82f6;">
+                <span>💧 Fleuves & Lacs</span>
+                <small>Avec Épaisseur</small>
+            </button>
+            <button onclick="downloadSVG('bati')" style="background-color: #4b5563;">
+                <span>🏢 Bâtiments</span>
+            </button>
+
+            <div id="status" class="info" style="font-weight: bold; color: var(--primary); margin-top:10px;"></div>
+        </div>
+
+        <div class="control-group">
+            <h3>4. Rendu Visuel</h3>
+            <div class="layer-btn-group">
+                <button class="secondary" onclick="setLayer('light')">Blanc</button>
+                <button class="secondary" onclick="setLayer('dark')">Noir</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        // Init Map
+        const map = L.map('map').setView([48.8566, 2.3522], 13);
+        
+        // Layers Definitions
+        const layers = {
+            osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }),
+            light: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CartoDB' }),
+            dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CartoDB' })
+        };
+        layers.light.addTo(map);
+
+        function setLayer(name) {
+            map.eachLayer(layer => {
+                if(layer._url) map.removeLayer(layer); // Remove only tiles, keep draw layer
+            });
+            layers[name].addTo(map);
+        }
+
+        // Search Control
+        L.Control.geocoder({ defaultMarkGeocode: false })
+            .on('markgeocode', function(e) {
+                const bbox = e.geocode.bbox;
+                const poly = L.polygon([bbox.getSouthEast(), bbox.getNorthEast(), bbox.getNorthWest(), bbox.getSouthWest()]);
+                map.fitBounds(poly.getBounds());
+            })
+            .addTo(map);
+
+        // --- DRAW FEATURE ---
+        const drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+        
+        // Manual Draw Controls
+        let selectedBounds = null;
+        let selectedShapeLayer = null; // Store the polygon layer (rectangle or star)
+
+        function drawRectangle() {
+             // Utilisation du draw control natif Leaflet Draw pour carré
+             new L.Draw.Rectangle(map, {
+                 shapeOptions: { color: '#2563eb' }
+             }).enable();
+        }
+
+        // --- PENTAGRAM LOGIC ---
+        function drawPentagram() {
+            drawnItems.clearLayers();
+            
+            const center = map.getCenter();
+            // Radius in degrees (approx)
+            const rOuter = 0.02; // ~2km
+            const rInner = 0.008; 
+            
+            const points = [];
+            const steps = 5;
+            const rot = -Math.PI / 2; // Point up
+            
+            for (let i = 0; i < steps * 2; i++) {
+                const radius = i % 2 === 0 ? rOuter : rInner;
+                const angle = (i * Math.PI) / steps + rot;
+                
+                // Correction aspect pour que l'étoile soit "droite" visuellement sur Mercator
+                // Latitude = Y, Longitude = X. 
+                // X doit être divisé par cos(lat)
+                const latOffset = radius * Math.sin(angle);
+                const lonOffset = (radius * Math.cos(angle)) / Math.cos(center.lat * Math.PI/180);
+                
+                points.push([center.lat + latOffset, center.lng + lonOffset]);
+            }
+
+            const polygon = L.polygon(points, {color: '#d946ef', weight: 3});
+            drawnItems.addLayer(polygon);
+            
+            selectedShapeLayer = polygon;
+            selectedBounds = polygon.getBounds();
+            
+            document.getElementById('zone-status').innerHTML = "⭐ Pentagramme Actif";
+            document.getElementById('zone-status').style.color = "#d946ef";
+        }
+
+        // Standard Leaflet Draw Events (for rectangle)
+        map.on(L.Draw.Event.CREATED, function (e) {
+            drawnItems.clearLayers();
+            const layer = e.layer;
+            drawnItems.addLayer(layer);
+            
+            selectedShapeLayer = layer;
+            selectedBounds = layer.getBounds();
+            
+            document.getElementById('zone-status').innerHTML = "✅ Zone Valide";
+            document.getElementById('zone-status').style.color = "green";
+        });
+
+
+        // --- LOGIQUE SVG ---
+        
+        async function downloadSVG(type) {
+            let bounds = selectedBounds;
+            
+            if (!bounds) {
+                if(!confirm("Pas de zone dessinée. Export sur tout l'écran ?")) return;
+                bounds = map.getBounds();
+            }
+
+            const s = bounds.getSouth();
+            const w = bounds.getWest();
+            const n = bounds.getNorth();
+            const e = bounds.getEast();
+            
+            const status = document.getElementById("status");
+            status.textContent = "Téléchargement...";
+
+            let queryFilter = "";
+
+            if (type === 'routes_grands') {
+                queryFilter = `way["highway"~"motorway|trunk|primary|motorway_link|trunk_link|primary_link"](${s},${w},${n},${e});`;
+            } else if (type === 'routes_secondaires') {
+                queryFilter = `way["highway"~"secondary|tertiary|secondary_link|tertiary_link"](${s},${w},${n},${e});`;
+            } else if (type === 'routes_locales') {
+                queryFilter = `way["highway"~"residential|unclassified|living_street|service"](${s},${w},${n},${e});`;
+            } else if (type === 'eau') {
+                queryFilter = `way["natural"="water"](${s},${w},${n},${e}); way["waterway"](${s},${w},${n},${e});`;
+            } else if (type === 'bati') {
+                queryFilter = `way["building"](${s},${w},${n},${e});`;
+            }
+
+            const query = `
+                [out:json][timeout:180];
+                (
+                    ${queryFilter}
+                );
+                out geom tags;
+            `;
+
+            const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("Erreur Overpass");
+                const data = await response.json();
+                
+                status.textContent = "Découpe forme...";
+                const svgContent = generateSVGFromJSON(data, bounds, type);
+                
+                if (svgContent) {
+                    downloadStringAsFile(svgContent, `export_${type}.svg`);
+                    status.textContent = "Terminé ! ✅";
+                } else {
+                    status.textContent = "Aucune donnée.";
+                }
+
+            } catch (err) {
+                console.error(err);
+                status.textContent = "Erreur.";
+                alert("Erreur : " + err.message);
+            }
+        }
+
+        // Convertisseur JSON -> SVG avec CLIP-PATH
+        function generateSVGFromJSON(data, bounds, layerType) {
+            if (!data.elements || data.elements.length === 0) return null;
+
+            // Projection Mercator
+            const minLat = bounds.getSouth();
+            const maxLat = bounds.getNorth();
+            const minLon = bounds.getWest();
+            const maxLon = bounds.getEast();
+            
+            const midLat = (minLat + maxLat) / 2;
+            const cosLat = Math.cos(midLat * Math.PI / 180);
+            const widthSvg = 1000 * ((maxLon - minLon) / (maxLat - minLat)) * cosLat;
+            const heightSvg = 1000;
+
+            // --- GENERATION DU CLIP PATH (Forme de découpe) ---
+            let clipPathD = ""; // Le chemin SVG de la forme de découpe
+            
+            if (selectedShapeLayer && selectedShapeLayer instanceof L.Polygon) {
+                // C'est un polygone (Etoile)
+                const latlngs = selectedShapeLayer.getLatLngs()[0]; // Outer ring
+                let isFirst = true;
+                latlngs.forEach(pt => {
+                    const px = ((pt.lng - minLon) / (maxLon - minLon)) * widthSvg;
+                    const py = 1000 - ((pt.lat - minLat) / (maxLat - minLat) * 1000);
+                    clipPathD += (isFirst ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
+                    isFirst = false;
+                });
+                clipPathD += " Z";
+            } else {
+                // Rectangle par défaut (Clip full)
+                clipPathD = `M 0 0 L ${widthSvg} 0 L ${widthSvg} 1000 L 0 1000 Z`;
+            }
+
+            let paths = [];
+
+            data.elements.forEach(el => {
+                if (!el.geometry || el.geometry.length < 2) return;
+
+                // --- PRE-CALCUL GEOMETRIE ---
+                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                
+                const projectedPts = el.geometry.map(pt => {
+                    const px = ((pt.lon - minLon) / (maxLon - minLon)) * widthSvg;
+                    const py = 1000 - ((pt.lat - minLat) / (maxLat - minLat) * 1000);
+                    if(px < minX) minX = px; if(px > maxX) maxX = px;
+                    if(py < minY) minY = py; if(py > maxY) maxY = py;
+                    return {x: px, y: py};
+                });
+
+                if (layerType === 'eau') {
+                    if ((maxX - minX) < 10 && (maxY - minY) < 10) return;
+                }
+
+                // Style
+                let strokeWidth = 1;
+                let strokeColor = "black";
+                let fill = "none";
+                
+                if (layerType === 'eau') {
+                    const isRiverLine = el.tags && el.tags.waterway;
+                    if (isRiverLine) {
+                         if (el.tags.waterway === 'river') strokeWidth = 25;
+                         else if (el.tags.waterway === 'canal') strokeWidth = 15;
+                         else if (el.tags.waterway === 'stream') strokeWidth = 3;
+                         else strokeWidth = 8;
+                    }
+                }
+                else if (layerType === 'routes_grands') strokeWidth = 5; 
+                else if (layerType === 'routes_secondaires') strokeWidth = 3;
+
+                // Path construction
+                let d = "";
+                projectedPts.forEach((pt, i) => {
+                    d += (i === 0 ? "M " : " L ") + pt.x.toFixed(2) + " " + pt.y.toFixed(2);
+                });
+                 
+                // Close poly
+                const first = projectedPts[0];
+                const last = projectedPts[projectedPts.length-1];
+                if (Math.abs(first.x - last.x) < 0.1 && Math.abs(first.y - last.y) < 0.1) {
+                    d += " Z";
+                }
+
+                paths.push(`<path d="${d}" fill="${fill}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />`);
+            });
+
+            if (paths.length === 0) return null;
+
+            // <g clip-path="url(#shapeClip)"> applique la découpe magique sur tout le contenu !
+            return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 ${widthSvg.toFixed(2)} ${heightSvg}">
+  <defs>
+    <clipPath id="shapeClip">
+      <path d="${clipPathD}" />
+    </clipPath>
+  </defs>
+  
+  <g id="layer_${layerType}" clip-path="url(#shapeClip)">
+    ${paths.join("\n    ")}
+  </g>
+  
+  <!-- Optionnel: Dessiner le contour de découpe pour le laser -->
+  <path d="${clipPathD}" fill="none" stroke="red" stroke-width="2" id="cut_line" />
+</svg>`;
+        }
+
+        function downloadStringAsFile(content, filename) {
+            const blob = new Blob([content], {type: 'image/svg+xml'});
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+    </script>
+</body>
+
+</html>

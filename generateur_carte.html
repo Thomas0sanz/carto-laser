@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de Carte pour Découpe Laser</title>
+    <!-- Inclusion de html2canvas pour l'export image -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --surface: #ffffff;
+            --background: #f3f4f6;
+            --text: #1f2937;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            background-color: var(--background);
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        /* Sidebar Styling */
+        #sidebar {
+            width: 350px;
+            background-color: var(--surface);
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .control-group:last-child {
+            border-bottom: none;
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+
+        /* Color indicators for the UI to remind user of the laser settings */
+        .color-badge {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: auto;
+            border: 1px solid #ddd;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #1d4ed8;
+        }
+
+        #map-container {
+            flex-grow: 1;
+            position: relative;
+            background-color: white;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Helper instructions */
+        .info {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+
+        /* Instructions for API Key */
+        #api-key-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            text-align: center;
+            display: none;
+            /* Hidden by default, shown if needed logic added later or manually toggled */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="sidebar">
+        <h1>Carte Laser</h1>
+
+        <div class="control-group">
+            <input type="text" id="pac-input" placeholder="Rechercher une ville..." />
+            <div class="info">Centrez la carte sur votre zone de découpe.</div>
+        </div>
+
+        <div class="control-group">
+            <h3>Calques (Layers)</h3>
+
+            <label>
+                <input type="checkbox" id="toggle-highways" checked>
+                Autoroutes
+                <span class="color-badge" style="background:#0000FF;" title="Bleu #0000FF"></span>
+            </label>
+
+            <label>
+                <input type="checkbox" id="toggle-arterial" checked>
+                Routes Principales
+                <span class="color-badge" style="background:#00FF00;" title="Vert #00FF00"></span>
+            </label>
+
+            <label>
+                <input type="checkbox" id="toggle-local" checked>
+                Petites Rues
+                <span class="color-badge" style="background:#000000;" title="Noir #000000"></span>
+            </label>
+
+            <label>
+                <input type="checkbox" id="toggle-water" checked>
+                Eau / Côtes
+                <span class="color-badge" style="background:#F0F0F0; border-color: #FF0000; border-width: 2px;"
+                    title="Remplissage Gris, Contour Rouge"></span>
+            </label>
+        </div>
+
+        <div class="control-group">
+            <button id="export-btn">📸 Exporter la Vue (PNG)</button>
+            <div class="info" style="margin-top:10px;">
+                Image couleur simple pour impression ou vue globale.
+            </div>
+        </div>
+
+        <div class="control-group" id="export-options">
+            <h3>Export "Vectorisation"</h3>
+            <div class="info" style="margin-bottom:10px;">
+                Google Maps ne permet pas le SVG (images raster). Pour le laser, générez ici des masques Noir & Blanc
+                séparés pour chaque couche, prêts à être vectorisés.
+            </div>
+
+            <label><input type="checkbox" id="exp-water" checked> Eau (Contours)</label>
+            <label><input type="checkbox" id="exp-highways" checked> Autoroutes</label>
+            <label><input type="checkbox" id="exp-arterial" checked> Routes Prin.</label>
+            <label><input type="checkbox" id="exp-local" checked> Petites Rues</label>
+
+            <button id="export-layers-btn" style="background-color: #2563eb; margin-top:10px;">📑 Générer les Calques
+                (PNG B&W)</button>
+            <div id="export-status" class="info" style="color: blue;"></div>
+        </div>
+
+        <div class="control-group">
+            <div class="info">
+                <strong>Légende Laser (Vue) :</strong><br>
+                🔵 Bleu : Autoroutes<br>
+                🟢 Vert : Routes Prin.<br>
+                ⚫ Noir : Rues Locales<br>
+                🔴 Rouge : Contour Eau
+            </div>
+        </div>
+    </div>
+
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+
+    <script>
+        let map;
+
+        // Define style configs for regular view
+        const getStyles = (options) => {
+            return [
+                { featureType: "all", elementType: "all", stylers: [{ visibility: "off" }] },
+                { featureType: "landscape", elementType: "geometry", stylers: [{ visibility: "on" }, { color: "#FFFFFF" }] },
+                { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },
+
+                // Water
+                { featureType: "water", elementType: "geometry.fill", stylers: [{ visibility: options.showWater ? "on" : "off" }, { color: "#F0F0F0" }] },
+                { featureType: "water", elementType: "geometry.stroke", stylers: [{ visibility: options.showWater ? "on" : "off" }, { color: "#FF0000" }, { weight: 2 }] },
+
+                // Roads
+                { featureType: "road.highway", elementType: "geometry.fill", stylers: [{ visibility: options.showHighways ? "on" : "off" }, { color: "#0000FF" }] },
+                { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ visibility: "off" }] },
+
+                { featureType: "road.arterial", elementType: "geometry.fill", stylers: [{ visibility: options.showArterial ? "on" : "off" }, { color: "#00FF00" }] },
+                { featureType: "road.arterial", elementType: "geometry.stroke", stylers: [{ visibility: "off" }] },
+
+                { featureType: "road.local", elementType: "geometry.fill", stylers: [{ visibility: options.showLocal ? "on" : "off" }, { color: "#000000" }] },
+                { featureType: "road.local", elementType: "geometry.stroke", stylers: [{ visibility: "off" }] }
+            ];
+        };
+
+        // Define styles for ISOLATED BLACK & WHITE MASKS (for easy vectorization)
+        const getMaskStyle = (layerType) => {
+            // Base style: Hide EVERYTHING, white background
+            let style = [
+                { featureType: "all", elementType: "all", stylers: [{ visibility: "off" }] },
+                { featureType: "landscape", elementType: "geometry", stylers: [{ visibility: "on" }, { color: "#FFFFFF" }] },
+                { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] }
+            ];
+
+            const blackFill = [{ visibility: "on" }, { color: "#000000" }];
+            const blackStroke = [{ visibility: "on" }, { color: "#000000" }, { weight: 2 }];
+
+            if (layerType === 'water') {
+                // Focus on stroke (contours) for laser or fill? Let's do fill for mask, user can outline in soft.
+                // Or better: black stroke on white water? 
+                // Let's do Black Fill for solid water cut.
+                style.push({ featureType: "water", elementType: "geometry.fill", stylers: blackFill });
+            }
+            if (layerType === 'highways') {
+                style.push({ featureType: "road.highway", elementType: "geometry.fill", stylers: blackFill });
+                style.push({ featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ visibility: "off" }] });
+            }
+            if (layerType === 'arterial') {
+                style.push({ featureType: "road.arterial", elementType: "geometry.fill", stylers: blackFill });
+                style.push({ featureType: "road.arterial", elementType: "geometry.stroke", stylers: [{ visibility: "off" }] });
+            }
+            if (layerType === 'local') {
+                style.push({ featureType: "road.local", elementType: "geometry.fill", stylers: blackFill });
+                style.push({ featureType: "road.local", elementType: "geometry.stroke", stylers: [{ visibility: "off" }] });
+            }
+
+            return style;
+        };
+
+        function initMap() {
+            // Default location: Paris
+            const paris = { lat: 48.8566, lng: 2.3522 };
+
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: paris,
+                zoom: 13,
+                disableDefaultUI: true,
+                zoomControl: true,
+                backgroundColor: '#ffffff'
+            });
+
+            // Initial Style
+            updateMapStyle();
+
+            // Search Box
+            const input = document.getElementById("pac-input");
+            const autocomplete = new google.maps.places.Autocomplete(input);
+            autocomplete.bindTo("bounds", map);
+
+            autocomplete.addListener("place_changed", () => {
+                const place = autocomplete.getPlace();
+                if (!place.geometry || !place.geometry.location) {
+                    window.alert("Aucun détail disponible pour cette entrée : '" + place.name + "'");
+                    return;
+                }
+                if (place.geometry.viewport) {
+                    map.fitBounds(place.geometry.viewport);
+                } else {
+                    map.setCenter(place.geometry.location);
+                    map.setZoom(15);
+                }
+            });
+
+            // Event Listeners for Controls
+            document.getElementById('toggle-highways').addEventListener('change', updateMapStyle);
+            document.getElementById('toggle-arterial').addEventListener('change', updateMapStyle);
+            document.getElementById('toggle-local').addEventListener('change', updateMapStyle);
+            document.getElementById('toggle-water').addEventListener('change', updateMapStyle);
+
+            // Export logic
+            document.getElementById('export-btn').addEventListener('click', exportMap);
+            document.getElementById('export-layers-btn').addEventListener('click', exportLayers);
+        }
+
+        function updateMapStyle() {
+            const options = {
+                showHighways: document.getElementById('toggle-highways').checked,
+                showArterial: document.getElementById('toggle-arterial').checked,
+                showLocal: document.getElementById('toggle-local').checked,
+                showWater: document.getElementById('toggle-water').checked
+            };
+            map.setOptions({ styles: getStyles(options) });
+        }
+
+        function exportMap() {
+            captureMap('carte-laser-vue.png');
+        }
+
+        async function exportLayers() {
+            const statusDiv = document.getElementById("export-status");
+            const btn = document.getElementById("export-layers-btn");
+
+            const layers = [];
+            if (document.getElementById('exp-water').checked) layers.push('water');
+            if (document.getElementById('exp-highways').checked) layers.push('highways');
+            if (document.getElementById('exp-arterial').checked) layers.push('arterial');
+            if (document.getElementById('exp-local').checked) layers.push('local');
+
+            if (layers.length === 0) {
+                alert("Sélectionnez au moins un calque !");
+                return;
+            }
+
+            btn.disabled = true;
+
+            for (let layer of layers) {
+                statusDiv.textContent = "Génération de : " + layer + "...";
+
+                // 1. Apply Mask Style
+                map.setOptions({ styles: getMaskStyle(layer) });
+
+                // 2. Wait a bit for render (tiles logic)
+                await new Promise(r => setTimeout(r, 1500));
+
+                // 3. Capture
+                await captureMap(`layer_${layer}.png`);
+            }
+
+            // Restore original view
+            statusDiv.textContent = "Terminé ! Restauration de la vue...";
+            updateMapStyle();
+            btn.disabled = false;
+            setTimeout(() => statusDiv.textContent = "", 3000);
+        }
+
+        function captureMap(filename) {
+            const mapDiv = document.getElementById("map-container");
+            return html2canvas(mapDiv, {
+                useCORS: true,
+                allowTaint: true
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            });
+        }
+
+    </script>
+
+    <!-- 
+        IMPORTANT : Remplacez 'YOUR_API_KEY_HERE' par votre véritable clé API Google Maps.
+        Assurez-vous que les APIs 'Maps JavaScript API' et 'Places API' sont activées.
+    -->
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA5OrU8E8Kl0_gMRjzjIgf-X6Jy16W7VEU&libraries=places&callback=initMap"
+        async defer></script>
+</body>
+
+</html>
