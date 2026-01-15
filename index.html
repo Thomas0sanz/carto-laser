@@ -161,7 +161,7 @@
 <body>
 
     <div id="sidebar">
-        <h1>Carte Laser (OSM) V15 ⬠</h1>
+        <h1>Carte Laser (OSM) V16 ⬠</h1>
 
         <!-- Nom du Projet -->
         <div style="margin-bottom: 20px;">
@@ -370,7 +370,7 @@
         });
 
 
-        // --- SINGLE FILE EXPORT LOGIC (DESTRUCTIVE CLIP) ---
+        // --- MULTI-FILE EXPORT LOGIC (DESTRUCTIVE CLIP + BATCH) ---
 
         async function downloadSelectedLayers() {
             if (map.getZoom() < 12) {
@@ -416,7 +416,7 @@
             }
 
             const status = document.getElementById("global-status");
-            status.textContent = "Démarrage V15...";
+            status.textContent = "Démarrage V16 (Multi-Fichiers)...";
 
             // Prepare SVG Dimensions
             const bounds = selectedBounds || map.getBounds();
@@ -433,12 +433,13 @@
                 return [px, py];
             }
 
-            let svgGroups = [];
             let errorCount = 0;
+            const safeProjName = (document.getElementById('projectName').value || "Carte_Laser").replace(/[^a-z0-9]/gi, '_');
+            const dateStr = new Date().toISOString().split('T')[0];
 
             // 2. Fetch & Process Each Layer
             for (const layer of activeLayers) {
-                status.textContent = "Téléchargement : " + layer.name + "...";
+                status.textContent = "Traitement : " + layer.name + "...";
 
                 let queryType = "";
                 if (layer.type === 'routes_grands') queryType = `way["highway"~"motorway|trunk|primary"]`;
@@ -467,8 +468,19 @@
 
                     // Generate Geometry
                     const groupContent = processLayerGeometry(data, layer, maskPolygon, project, metersPerPx(maxLat, minLat));
+
                     if (groupContent) {
-                        svgGroups.push(`<g id="${layer.name}" stroke="${layer.color}" fill="${layer.fill ? layer.color : 'none'}" stroke-width="${layer.width || 1}">\n${groupContent}\n</g>`);
+                        // Generate Individual SVG for this layer
+                        const layerSVG = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 ${widthSvg.toFixed(2)} ${heightSvg}">
+  <g id="${layer.name}" stroke="${layer.color}" fill="${layer.fill ? layer.color : 'none'}" stroke-width="${layer.width || 1}">
+    ${groupContent}
+  </g>
+</svg>`;
+                        const filename = `${safeProjName}_${layer.name}_V16_${dateStr}.svg`;
+                        downloadStringAsFile(layerSVG, filename);
+                    } else {
+                        console.warn("Aucune géométrie générée pour " + layer.name);
                     }
 
                 } catch (e) {
@@ -478,23 +490,12 @@
                     await new Promise(r => setTimeout(r, 2000));
                 }
 
-                await new Promise(r => setTimeout(r, 500));
+                // IMPORTANT: Wait 1s between downloads to prevent browser blocking
+                await new Promise(r => setTimeout(r, 1000));
             }
 
-            if (errorCount > 0) alert("Attention : " + errorCount + " calque(s) ont échoué (Trop de données / Timeout Serveur). Réessayez une zone plus petite.");
-
-            // 3. Assemble Final SVG
-            const safeProjName = (document.getElementById('projectName').value || "Carte_Laser").replace(/[^a-z0-9]/gi, '_');
-            const dateStr = new Date().toISOString().split('T')[0];
-            const filename = `${safeProjName}_V15_${dateStr}.svg`;
-
-            const finalSVG = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 ${widthSvg.toFixed(2)} ${heightSvg}">
-  ${svgGroups.join("\n")}
-</svg>`;
-
-            downloadStringAsFile(finalSVG, filename);
-            status.textContent = errorCount === 0 ? "✅ Export V15 Terminé !" : "⚠️ Terminé avec erreurs.";
+            if (errorCount > 0) alert("Attention : " + errorCount + " calque(s) ont échoué.");
+            status.textContent = errorCount === 0 ? "✅ Export V16 Terminé !" : "⚠️ Terminé avec erreurs.";
         }
 
         // Helper: Meters/Px
