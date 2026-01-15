@@ -161,9 +161,9 @@
 <body>
 
     <div id="sidebar">
-        <h1>Carte Laser (OSM) V21 ⬠</h1>
-        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V21 (Physique &
-            Surface)</div>
+        <h1>Carte Laser (OSM) V22 ⬠</h1>
+        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V22 (Lissage
+            Surfaces)</div>
 
         <!-- Nom du Projet -->
         <div style="margin-bottom: 20px;">
@@ -565,7 +565,7 @@
             return ((maxLat - minLat) * 111320) / 1000;
         }
 
-        // --- GEOMETRY PROCESSOR (V21: Buffering) ---
+        // --- GEOMETRY PROCESSOR (V22: Buffering & Smoothing) ---
         function processLayerGeometry(data, layer, maskPolygon, projectFn, mPerPx, shouldMerge, useBuffer, bufferRadius) {
             if (!data.elements) return "";
 
@@ -587,7 +587,7 @@
                         if (el.tags.waterway === 'canal') pxWidth = 15;
                         try {
                             const line = turf.lineString(coords);
-                            const buf = turf.buffer(line, (pxWidth * mPerPx) / 2, { units: 'meters' });
+                            const buf = turf.buffer(line, (pxWidth * mPerPx) / 2, { units: 'meters', steps: 16 });
                             features.push(buf);
                         } catch (e) { }
                     } else {
@@ -603,7 +603,8 @@
                         const line = turf.lineString(coords);
                         if (useBuffer) {
                             // Convert Line to Buffered Polygon
-                            const buf = turf.buffer(line, bufferRadius, { units: 'meters' });
+                            const cleanLine = turf.cleanCoords(line);
+                            const buf = turf.buffer(cleanLine, bufferRadius, { units: 'meters', steps: 32 });
                             features.push(buf);
                         } else {
                             features.push(line);
@@ -626,6 +627,12 @@
                         for (let i = 1; i < features.length; i++) {
                             merged = turf.union(merged, features[i]);
                         }
+
+                        // V22: Clean Result
+                        merged = turf.cleanCoords(merged);
+                        // Optional: Very slight simplification to remove artifacts, but be careful not to distort
+                        merged = turf.simplify(merged, { tolerance: 0.000001, highQuality: true });
+
                         features = [merged];
                     }
                 } catch (e) { console.warn("Union failed", e); }
