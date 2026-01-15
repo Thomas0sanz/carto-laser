@@ -161,9 +161,9 @@
 <body>
 
     <div id="sidebar">
-        <h1>Carte Laser (OSM) V23 ⬠</h1>
-        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V23 (Style
-            Découpe/Gravure)</div>
+        <h1>Carte Laser (OSM) V24 ⬠</h1>
+        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V24 (Fix Découpe
+            Bâtiments)</div>
 
         <!-- Nom du Projet -->
         <div style="margin-bottom: 20px;">
@@ -681,6 +681,11 @@
                 if (!f) return;
                 try {
                     let geometryToDraw = null;
+
+                    // V24: Geometry Hygiene (Important for Polygons like Buildings)
+                    f = turf.cleanCoords(f);
+                    f = turf.rewind(f);
+
                     const type = f.geometry.type;
 
                     if (type === 'Polygon' || type === 'MultiPolygon') {
@@ -703,10 +708,13 @@
                         }
                     }
 
+                    // Safety Check: If intersect returned null/undefined, don't draw
                     if (geometryToDraw) {
                         processFeatureToPath(geometryToDraw, projectFn, shouldMerge, parts, (d) => compoundD += d + " ");
                     }
-                } catch (e) { }
+                } catch (e) {
+                    // console.warn("Geo error", e);
+                }
             });
 
             if (shouldMerge && compoundD.trim() !== "") {
