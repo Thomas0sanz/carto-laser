@@ -161,9 +161,9 @@
 <body>
 
     <div id="sidebar">
-        <h1>Carte Laser (OSM) V22 ⬠</h1>
-        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V22 (Lissage
-            Surfaces)</div>
+        <h1>Carte Laser (OSM) V23 ⬠</h1>
+        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V23 (Style
+            Découpe/Gravure)</div>
 
         <!-- Nom du Projet -->
         <div style="margin-bottom: 20px;">
@@ -264,6 +264,15 @@
                         <input type="number" id="roadThick" value="4" min="0.1" max="20" step="0.1"
                             style="width:100%; padding:4px;">
                     </div>
+                </div>
+
+                <!-- V23: Style export -->
+                <div style="margin-top:10px;">
+                    <label style="font-size:0.8rem; font-weight:600;">Style de Rendu</label>
+                    <select id="renderStyle" style="width:100%; padding:4px; margin-top:4px;">
+                        <option value="fill">⬛ Remplissage (Surface/Gravure)</option>
+                        <option value="stroke">⭕ Contour (Découpe Vectorielle)</option>
+                    </select>
                 </div>
             </div>
 
@@ -435,6 +444,7 @@
             // V21 Inputs
             const targetWidthCm = parseFloat(document.getElementById('exportWidth').value) || 10;
             const roadThickMm = parseFloat(document.getElementById('roadThick').value) || 4;
+            const renderStyle = document.getElementById('renderStyle').value; // 'fill' or 'stroke'
 
             if (activeLayers.length === 0) {
                 alert("Veuillez cocher au moins une couche !");
@@ -442,7 +452,7 @@
             }
 
             const status = document.getElementById("global-status");
-            status.textContent = "Démarrage V21 (Physique & Surface)...";
+            status.textContent = "Démarrage V23...";
 
             // Prepare SVG Dimensions
             const bounds = selectedBounds || map.getBounds();
@@ -533,15 +543,43 @@
                     const groupContent = processLayerGeometry(data, layer, maskPolygon, project, metersPerPx(maxLat, minLat), shouldMerge, useBuffer, radius);
 
                     if (groupContent) {
+                        // V23: Style Logic
+                        let fillVal = "none";
+                        let strokeVal = "none";
+                        let strokeWidthVal = "0";
+
+                        // Is this layer a "Surface" (Filled)? 
+                        // Water/Builds are filled. Roads are filled (buffered) in V21+.
+                        const isSurface = (layer.fill || useBuffer);
+
+                        if (renderStyle === 'fill') {
+                            // MODE FILL: Black body, No stroke
+                            if (isSurface) {
+                                fillVal = layer.color;
+                                strokeVal = "none";
+                            } else {
+                                // Fallback for pure lines (if any)
+                                fillVal = "none";
+                                strokeVal = layer.color;
+                                strokeWidthVal = layer.width || 1;
+                            }
+                        } else {
+                            // MODE STROKE (Outline/Cut): No Fill, Red Stroke
+                            fillVal = "none";
+                            // For cut, usually red, thin.
+                            strokeVal = "red";
+                            strokeWidthVal = "0.5"; // Thin line for laser vector
+                        }
+
                         const layerSVG = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="${targetWidthCm}cm" height="${targetHeightCm.toFixed(2)}cm" viewBox="0 0 ${widthSvgPx.toFixed(2)} ${heightSvgPx.toFixed(2)}">
-  <g id="${layer.name}" stroke="${layer.color}" fill="${(layer.fill || useBuffer) ? layer.color : 'none'}" stroke-width="${useBuffer ? 0 : (layer.width || 1)}">
+  <g id="${layer.name}" stroke="${strokeVal}" fill="${fillVal}" stroke-width="${strokeWidthVal}">
     ${groupContent}
   </g>
   <!-- Cadre d'Alignement -->
-  <path d="${framePathD}" fill="none" stroke="red" stroke-width="1" vector-effect="non-scaling-stroke" id="frame_alignment" />
+  <path d="${framePathD}" fill="none" stroke="red" stroke-width="0.5" vector-effect="non-scaling-stroke" id="frame_alignment" />
 </svg>`;
-                        const filename = `${safeProjName}_${layer.name}_V21_${dateStr}.svg`;
+                        const filename = `${safeProjName}_${layer.name}_V23_${dateStr}.svg`;
                         downloadStringAsFile(layerSVG, filename);
                     } else {
                         console.warn("Aucune géométrie pour " + layer.name);
