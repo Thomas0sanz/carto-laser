@@ -370,19 +370,36 @@
         });
 
 
-        // --- BATCH DOWNLOAD LOGIC ---
+        // --- SINGLE FILE EXPORT LOGIC (DESTRUCTIVE CLIP) ---
 
         async function downloadSelectedLayers() {
             if (map.getZoom() < 12) {
-                if (!confirm("⚠️ ATTENTION : Vous êtes très dézoomé.\nLa zone demandée est gigantesque.\n\nLe serveur risque de planter (Erreur 504 Timeout).\n\nConseil : Zoomez plus près ou réduisez la zone.\nVoulez-vous quand même tenter ?")) return;
+                if (!confirm("⚠️ ATTENTION : Zone très large.\nRisque de Timeout serveur.\nVoulez-vous continuer ?")) return;
+            }
+
+            // 1. Define Clipping Mask (Turf Polygon)
+            let maskPolygon = null;
+            if (selectedShapeLayer && selectedShapeLayer instanceof L.Polygon) {
+                // Convert Leaflet LatLngs to GeoJSON coords [[lon, lat], ...]
+                const latlngs = selectedShapeLayer.getLatLngs()[0];
+                const coords = latlngs.map(pt => [pt.lng, pt.lat]);
+                // Close ring
+                if (coords.length > 0 && (coords[0][0] !== coords[coords.length - 1][0] || coords[0][1] !== coords[coords.length - 1][1])) {
+                    coords.push(coords[0]);
+                }
+                maskPolygon = turf.polygon([coords]);
+            } else {
+                // Fallback to Bounds Rect
+                const b = map.getBounds();
+                maskPolygon = turf.bboxPolygon([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
             }
 
             const layers = [
-                { id: 'chk_routes_grands', type: 'routes_grands' },
-                { id: 'chk_routes_secondaires', type: 'routes_secondaires' },
-                { id: 'chk_routes_locales', type: 'routes_locales' },
-                { id: 'chk_eau', type: 'eau' },
-                { id: 'chk_bati', type: 'bati' }
+                { id: 'chk_routes_grands', type: 'routes_grands', name: 'Autoroutes', color: 'red', width: 5 },
+                { id: 'chk_routes_secondaires', type: 'routes_secondaires', name: 'Routes_Principales', color: 'orange', width: 3 },
+                { id: 'chk_routes_locales', type: 'routes_locales', name: 'Rues', color: 'black', width: 1 },
+                { id: 'chk_eau', type: 'eau', name: 'Eau', color: 'blue', fill: true },
+                { id: 'chk_bati', type: 'bati', name: 'Batiments', color: 'black', fill: true }
             ];
 
             const activeLayers = layers.filter(l => document.getElementById(l.id).checked);
@@ -393,232 +410,199 @@
             }
 
             const status = document.getElementById("global-status");
-            status.textContent = "Démarrage des exports...";
+            status.textContent = "Démarrage...";
 
-            for (const layer of activeLayers) {
-                status.textContent = "Téléchargement : " + layer.type + "...";
-                await downloadSVG(layer.type);
-                await new Promise(r => setTimeout(r, 1500));
-            }
-
-            status.textContent = "✅ Tous les fichiers sont prêts !";
-        }
-
-        // --- CORE SVG LOGIC ---
-
-        async function downloadSVG(type) {
-            let bounds = selectedBounds;
-            if (!bounds) {
-                if (!confirm("Pas de zone. Tout l'écran ?")) return;
-                bounds = map.getBounds();
-            }
-
-            const s = bounds.getSouth();
-            const w = bounds.getWest();
-            const n = bounds.getNorth();
-            const e = bounds.getEast();
-
-            let queryFilter = "";
-            let niceName = type;
-
-            if (type === 'routes_grands') {
-                queryFilter = `way["highway"~"motorway|trunk|primary"](${s},${w},${n},${e});`;
-                niceName = "Autoroutes";
-            }
-            else if (type === 'routes_secondaires') {
-                queryFilter = `way["highway"~"secondary|tertiary"](${s},${w},${n},${e});`;
-                niceName = "Routes_Principales";
-            }
-            else if (type === 'routes_locales') {
-                queryFilter = `way["highway"~"residential|unclassified|living_street"](${s},${w},${n},${e});`;
-                niceName = "Rues";
-            }
-            else if (type === 'eau') {
-                queryFilter = `way["natural"="water"](${s},${w},${n},${e}); way["waterway"](${s},${w},${n},${e});`;
-                niceName = "Eau";
-            }
-            else if (type === 'bati') {
-                queryFilter = `way["building"](${s},${w},${n},${e});`;
-                niceName = "Batiments";
-            }
-
-            // Construct Filename
-            const rawProjectName = document.getElementById('projectName').value.trim();
-            const safeProjectName = rawProjectName ? rawProjectName.replace(/[^a-z0-9]/gi, '_') : "Carte_Laser";
-            const dateStr = new Date().toISOString().split('T')[0];
-            const filename = `${safeProjectName}_${niceName}_${dateStr}.svg`;
-
-            const query = `[out:json][timeout:300]; (${queryFilter}); out geom tags;`;
-            const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
-
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error("Erreur API " + response.status);
-                const data = await response.json();
-                const svgContent = generateSVGFromJSON(data, bounds, type);
-
-                if (svgContent) downloadStringAsFile(svgContent, filename);
-            } catch (err) {
-                console.error(err);
-                const status = document.getElementById("global-status");
-                status.textContent = "❌ Erreur " + type + " (Timeout/Trop grand)";
-            }
-        }
-
-        function generateSVGFromJSON(data, bounds, layerType) {
-            if (!data.elements || data.elements.length === 0) return null;
-
+            // Prepare SVG Dimensions
+            const bounds = selectedBounds || map.getBounds();
             const minLat = bounds.getSouth();
             const maxLat = bounds.getNorth();
             const minLon = bounds.getWest();
             const maxLon = bounds.getEast();
-
-            // Projection Setup
             const midLat = (minLat + maxLat) / 2;
             const cosLat = Math.cos(midLat * Math.PI / 180);
             const widthSvg = 1000 * ((maxLon - minLon) / (maxLat - minLat)) * cosLat;
             const heightSvg = 1000;
 
-            // Helper: LatLon -> SVG px
             function project(lat, lon) {
                 const px = ((lon - minLon) / (maxLon - minLon)) * widthSvg;
                 const py = 1000 - ((lat - minLat) / (maxLat - minLat) * 1000);
                 return [px, py];
             }
 
-            // Clip Path Logic
-            let clipPathD = "";
-            if (selectedShapeLayer && selectedShapeLayer instanceof L.Polygon) {
-                const latlngs = selectedShapeLayer.getLatLngs()[0];
-                latlngs.forEach((pt, i) => {
-                    const [px, py] = project(pt.lat, pt.lng);
-                    clipPathD += (i === 0 ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
-                });
-                clipPathD += " Z";
-            } else {
-                clipPathD = `M 0 0 L ${widthSvg} 0 L ${widthSvg} 1000 L 0 1000 Z`;
+            let svgGroups = [];
+
+            // 2. Fetch & Process Each Layer
+            for (const layer of activeLayers) {
+                status.textContent = "Traitement : " + layer.name + "...";
+
+                // Build Query (Same as before)
+                const s = bounds.getSouth(), w = bounds.getWest(), n = bounds.getNorth(), e = bounds.getEast();
+                let queryFilter = "";
+                if (layer.type === 'routes_grands') queryFilter = `way["highway"~"motorway|trunk|primary"](${s},${w},${n},${e});`;
+                else if (layer.type === 'routes_secondaires') queryFilter = `way["highway"~"secondary|tertiary"](${s},${w},${n},${e});`;
+                else if (layer.type === 'routes_locales') queryFilter = `way["highway"~"residential|unclassified|living_street"](${s},${w},${n},${e});`;
+                else if (layer.type === 'eau') queryFilter = `way["natural"="water"](${s},${w},${n},${e}); way["waterway"](${s},${w},${n},${e});`;
+                else if (layer.type === 'bati') queryFilter = `way["building"](${s},${w},${n},${e});`;
+
+                const query = `[out:json][timeout:300]; (${queryFilter}); out geom tags;`;
+
+                try {
+                    const resp = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+                    if (!resp.ok) throw new Error("Err");
+                    const data = await resp.json();
+
+                    // Generate Geometry Content
+                    const groupContent = processLayerGeometry(data, layer, maskPolygon, project, metersPerPx(maxLat, minLat));
+                    if (groupContent) {
+                        svgGroups.push(`<g id="${layer.name}" stroke="${layer.color}" fill="${layer.fill ? layer.color : 'none'}" stroke-width="${layer.width || 1}">\n${groupContent}\n</g>`);
+                    }
+
+                } catch (e) { console.error(e); }
             }
 
-            // --- TURF.JS GEOMETRY PROCESSING (For Water) ---
+            // 3. Assemble Final SVG
+            const safeProjName = (document.getElementById('projectName').value || "Carte_Laser").replace(/[^a-z0-9]/gi, '_');
+            const dateStr = new Date().toISOString().split('T')[0];
+            const filename = `${safeProjName}_ALL_${dateStr}.svg`;
 
-            let paths = [];
+            const finalSVG = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 ${widthSvg.toFixed(2)} ${heightSvg}">
+  ${svgGroups.join("\n")}
+</svg>`;
 
-            if (layerType === 'eau') {
-                // Collect GeoJSON Features
-                let featuresToUnion = [];
+            downloadStringAsFile(finalSVG, filename);
+            status.textContent = "✅ Export Terminé !";
+        }
 
-                // Calculate approx meters per pixel for buffer
-                // Earth circum = 40075km. 1 deg lat = 111km.
-                // Height in degrees = maxLat - minLat.
-                // Height in meters = (maxLat - minLat) * 111320.
-                // SVG Height = 1000px.
-                // Meters per px = HeightM / 1000.
-                const metersPerPx = ((maxLat - minLat) * 111320) / 1000;
+        // Helper: Meters/Px
+        function metersPerPx(maxLat, minLat) {
+            return ((maxLat - minLat) * 111320) / 1000;
+        }
 
-                data.elements.forEach(el => {
-                    if (!el.geometry || el.geometry.length < 2) return;
+        // --- GEOMETRY PROCESSOR (CLIPPING) ---
+        function processLayerGeometry(data, layer, maskPolygon, projectFn, mPerPx) {
+            if (!data.elements) return "";
 
-                    const isArea = (el.tags.natural === 'water' || el.tags.waterway === 'riverbank' || el.tags.landuse === 'reservoir');
-                    const isLinear = (el.tags.waterway === 'river' || el.tags.waterway === 'canal' || el.tags.waterway === 'stream');
+            let parts = []; // SVG Paths
 
-                    // Convert OSM geometry to Coordinates [[lon, lat], ...]
-                    const coords = el.geometry.map(pt => [pt.lon, pt.lat]);
+            // 1. Convert to Turf Features
+            let features = [];
+            data.elements.forEach(el => {
+                if (!el.geometry || el.geometry.length < 2) return;
+                const coords = el.geometry.map(p => [p.lon, p.lat]);
 
-                    if (isArea) {
-                        // Close polygon if needed
-                        if (coords[0][0] !== coords[coords.length - 1][0] || coords[0][1] !== coords[coords.length - 1][1]) {
-                            coords.push(coords[0]);
-                        }
-                        // Add to collection
-                        try {
-                            featuresToUnion.push(turf.polygon([coords]));
-                        } catch (e) { /* Invalid geometry */ }
-                    }
-                    else if (isLinear) {
-                        // Buffer Width (Pixels -> Meters)
+                // Water/Buildings -> Polygons
+                if (layer.fill || (layer.type === 'eau')) {
+                    // logic for Water buffering (V12)
+                    const isLinearWater = (layer.type === 'eau' && (el.tags.waterway === 'river' || el.tags.waterway === 'canal' || el.tags.waterway === 'stream'));
+
+                    if (isLinearWater) {
                         let pxWidth = 8;
                         if (el.tags.waterway === 'river') pxWidth = 25;
                         if (el.tags.waterway === 'canal') pxWidth = 15;
-
-                        const bufferDist = (pxWidth * metersPerPx) / 2; // Radius
-
                         try {
                             const line = turf.lineString(coords);
-                            const buffered = turf.buffer(line, bufferDist, { units: 'meters' });
-                            featuresToUnion.push(buffered);
+                            const buf = turf.buffer(line, (pxWidth * mPerPx) / 2, { units: 'meters' });
+                            features.push(buf);
                         } catch (e) { }
+                    } else {
+                        // Normal Polygon (Lake/Building)
+                        if (coords.length > 2) {
+                            if (coords[0][0] !== coords[coords.length - 1][0]) coords.push(coords[0]);
+                            try { features.push(turf.polygon([coords])); } catch (e) { }
+                        }
                     }
-                });
-
-                // UNION EVERYTHING
-                if (featuresToUnion.length > 0) {
-                    let merged = featuresToUnion[0];
-                    for (let i = 1; i < featuresToUnion.length; i++) {
-                        try {
-                            merged = turf.union(merged, featuresToUnion[i]);
-                        } catch (e) { /* Ignore merge fail */ }
-                    }
-
-                    // DRAW RESULT
-                    // Merged can be Polygon or MultiPolygon
-                    const geoms = (merged.geometry.type === 'Polygon') ? [merged.geometry.coordinates] : merged.geometry.coordinates;
-
-                    geoms.forEach(polyCoords => {
-                        // Polygon has [OuterRing, Hole1, Hole2...]
-                        polyCoords.forEach(ring => {
-                            let d = "";
-                            ring.forEach((pt, i) => {
-                                const [px, py] = project(pt[1], pt[0]); // GeoJSON is Lon,Lat. Project wants Lat,Lon
-                                d += (i === 0 ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
-                            });
-                            d += " Z";
-                            paths.push(`<path d="${d}" fill="black" stroke="none" />`);
-                        });
-                    });
                 }
+                else {
+                    // Roads -> LineStrings
+                    try { features.push(turf.lineString(coords)); } catch (e) { }
+                }
+            });
 
-            } else {
-                // --- STANDARD LOGIC FOR ROADS (NON-MERGED) ---
-                data.elements.forEach(el => {
-                    if (!el.geometry || el.geometry.length < 2) return;
-
-                    let strokeWidth = 1;
-                    if (layerType === 'routes_grands') strokeWidth = 5;
-                    else if (layerType === 'routes_secondaires') strokeWidth = 3;
-                    else if (layerType === 'bati') {
-                        // Buildings are shapes
-                        let d = "";
-                        el.geometry.forEach((pt, i) => {
-                            const [px, py] = project(pt.lat, pt.lon);
-                            d += (i === 0 ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
-                        });
-                        // Close loop for buildings
-                        d += " Z";
-                        paths.push(`<path d="${d}" fill="black" stroke="none" />`);
-                        return; // Skip the line drawing below
-                    }
-
-                    // Project
-                    let d = "";
-                    el.geometry.forEach((pt, i) => {
-                        const [px, py] = project(pt.lat, pt.lon);
-                        d += (i === 0 ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
-                    });
-
-                    paths.push(`<path d="${d}" fill="none" stroke="black" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" />`);
-                });
+            // 2. UNION (For Water Only)
+            if (layer.type === 'eau' && features.length > 0) {
+                try {
+                    let merged = features[0];
+                    for (let i = 1; i < features.length; i++) merged = turf.union(merged, features[i]);
+                    features = [merged]; // Keep only the merged result
+                } catch (e) { }
             }
 
-            if (paths.length === 0) return null;
+            // 3. HARD CLIP (INTERSECTION)
+            features.forEach(f => {
+                if (!f) return;
 
-            return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 ${widthSvg.toFixed(2)} ${heightSvg}">
-  <defs><clipPath id="shapeClip"><path d="${clipPathD}"/></clipPath></defs>
-  <g id="layer_${layerType}" clip-path="url(#shapeClip)">
-    ${paths.join("\n    ")}
-  </g>
-  <path d="${clipPathD}" fill="none" stroke="red" stroke-width="2" id="cut_line" />
-</svg>`;
+                if (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon') {
+                    // Polygon Clipping
+                    const clipped = turf.intersect(f, maskPolygon);
+                    if (clipped) drawFeature(clipped, parts, projectFn);
+                }
+                else if (f.geometry.type === 'LineString') {
+                    // Line Clipping (Split & Filter)
+                    // Note: turf.lineSplit only splits at intersection. We need split + keep inside.
+                    // If line is fully inside => keep.
+                    if (turf.booleanWithin(f, maskPolygon)) {
+                        drawFeature(f, parts, projectFn);
+                    } else {
+                        // Tricky part: Line might cross multiple times.
+                        // Use bboxClip first for speed? No, bbox is not Pentagram.
+                        // Split logic:
+                        const split = turf.lineSplit(f, maskPolygon);
+                        // If no split but not within, it's outside.
+                        // Actually lineSplit returns FeatureCollection of segments.
+
+                        let segments = [];
+                        if (split.features.length > 0) segments = split.features;
+                        else segments = [f]; // Check the whole line if no split (could be fully inside or outside?)
+
+                        segments.forEach(seg => {
+                            const mid = turf.midpoint(seg);
+                            if (turf.booleanPointInPolygon(mid, maskPolygon)) {
+                                drawFeature(seg, parts, projectFn);
+                            }
+                        });
+                    }
+                }
+            });
+
+            return parts.join("\n");
+        }
+
+        function drawFeature(feature, parts, projectFn) {
+            const geoms = (feature.geometry.type === 'MultiPolygon' || feature.geometry.type === 'MultiLineString')
+                ? feature.geometry.coordinates
+                : [feature.geometry.coordinates];
+
+            // Helper to recursively handle multi-depth
+            // Polygon: [[Ring], [Hole]] -> Ring is [pt, pt]
+            // MultiPolygon: [[[Ring], [Hole]], [[Ring]]]
+            // LineString: [pt, pt]
+
+            // Unify structure traversal is annoying. Simplification:
+            turf.flatten(feature).features.forEach(f => {
+                const coords = f.geometry.coordinates;
+                const type = f.geometry.type;
+
+                if (type === 'Polygon') {
+                    coords.forEach(ring => {
+                        let d = "";
+                        ring.forEach((pt, i) => {
+                            const [px, py] = projectFn(pt[1], pt[0]);
+                            d += (i === 0 ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
+                        });
+                        d += " Z";
+                        parts.push(`<path d="${d}" vector-effect="non-scaling-stroke" />`);
+                    });
+                }
+                else if (type === 'LineString') {
+                    let d = "";
+                    coords.forEach((pt, i) => {
+                        const [px, py] = projectFn(pt[1], pt[0]);
+                        d += (i === 0 ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
+                    });
+                    parts.push(`<path d="${d}" fill="none" vector-effect="non-scaling-stroke" />`);
+                }
+            });
         }
 
         function downloadStringAsFile(content, filename) {
