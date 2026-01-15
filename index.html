@@ -161,7 +161,7 @@
 <body>
 
     <div id="sidebar">
-        <h1>Carte Laser (OSM) V16 ⬠</h1>
+        <h1>Carte Laser (OSM) V17 ⬠</h1>
 
         <!-- Nom du Projet -->
         <div style="margin-bottom: 20px;">
@@ -370,7 +370,7 @@
         });
 
 
-        // --- MULTI-FILE EXPORT LOGIC (DESTRUCTIVE CLIP + BATCH) ---
+        // --- MULTI-FILE EXPORT LOGIC (DESTRUCTIVE CLIP + BATCH + ALIGNMENT FRAME) ---
 
         async function downloadSelectedLayers() {
             if (map.getZoom() < 12) {
@@ -416,7 +416,7 @@
             }
 
             const status = document.getElementById("global-status");
-            status.textContent = "Démarrage V16 (Multi-Fichiers)...";
+            status.textContent = "Démarrage V17 (Cadre d'alignement)...";
 
             // Prepare SVG Dimensions
             const bounds = selectedBounds || map.getBounds();
@@ -431,6 +431,18 @@
                 const px = ((lon - minLon) / (maxLon - minLon)) * widthSvg;
                 const py = 1000 - ((lat - minLat) / (maxLat - minLat) * 1000);
                 return [px, py];
+            }
+
+            // Generate Alignment Frame Path (Red Line)
+            let framePathD = "";
+            if (maskPolygon && maskPolygon.geometry && maskPolygon.geometry.coordinates) {
+                const ring = maskPolygon.geometry.coordinates[0];
+                ring.forEach((pt, i) => {
+                    // pt is [lon, lat]
+                    const [px, py] = project(pt[1], pt[0]);
+                    framePathD += (i === 0 ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
+                });
+                framePathD += " Z";
             }
 
             let errorCount = 0;
@@ -476,11 +488,13 @@
   <g id="${layer.name}" stroke="${layer.color}" fill="${layer.fill ? layer.color : 'none'}" stroke-width="${layer.width || 1}">
     ${groupContent}
   </g>
+  <!-- Cadre d'Alignement (Coupe) -->
+  <path d="${framePathD}" fill="none" stroke="red" stroke-width="1" id="frame_alignment" />
 </svg>`;
-                        const filename = `${safeProjName}_${layer.name}_V16_${dateStr}.svg`;
+                        const filename = `${safeProjName}_${layer.name}_V17_${dateStr}.svg`;
                         downloadStringAsFile(layerSVG, filename);
                     } else {
-                        console.warn("Aucune géométrie générée pour " + layer.name);
+                        console.warn("Aucune géométrie pour " + layer.name);
                     }
 
                 } catch (e) {
@@ -495,7 +509,7 @@
             }
 
             if (errorCount > 0) alert("Attention : " + errorCount + " calque(s) ont échoué.");
-            status.textContent = errorCount === 0 ? "✅ Export V16 Terminé !" : "⚠️ Terminé avec erreurs.";
+            status.textContent = errorCount === 0 ? "✅ Export V17 Terminé !" : "⚠️ Terminé avec erreurs.";
         }
 
         // Helper: Meters/Px
