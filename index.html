@@ -18,6 +18,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
+    <!-- Turf.js for Geometry -->
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+
     <style>
         :root {
             --primary: #8b5cf6;
@@ -38,7 +41,7 @@
         }
 
         #sidebar {
-            width: 350px;
+            width: 380px;
             background-color: var(--surface);
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
             display: flex;
@@ -69,15 +72,6 @@
             line-height: 1.4;
         }
 
-        .warning-box {
-            background-color: #fffbeb;
-            border-left: 4px solid #f59e0b;
-            padding: 10px;
-            margin: 10px 0;
-            font-size: 0.85rem;
-            color: #92400e;
-        }
-
         button {
             background-color: var(--primary);
             color: white;
@@ -90,10 +84,11 @@
             width: 100%;
             transition: background-color 0.2s;
             margin-bottom: 8px;
-            text-align: left;
+            text-align: center;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
+            gap: 8px;
         }
 
         button:hover {
@@ -103,12 +98,51 @@
         button.secondary {
             background-color: #e5e7eb;
             color: #374151;
-            text-align: center;
-            justify-content: center;
         }
 
         button.secondary:hover {
             background-color: #d1d5db;
+        }
+
+        /* Checkbox List Styles */
+        .layer-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #f9fafb;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .layer-item:hover {
+            background-color: #f3f4f6;
+        }
+
+        .layer-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: #e5e7eb;
+            color: #4b5563;
+            margin-left: auto;
         }
 
         #map {
@@ -121,23 +155,20 @@
         .leaflet-control-geocoder {
             z-index: 2000;
         }
-
-        .layer-btn-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .layer-btn-group button {
-            width: 50%;
-            font-size: 0.9rem;
-        }
     </style>
 </head>
 
 <body>
 
     <div id="sidebar">
-        <h1>Carte Laser (OSM) V5 ⭐</h1>
+        <h1>Carte Laser (OSM) V12 ⬠</h1>
+
+        <!-- Nom du Projet -->
+        <div style="margin-bottom: 20px;">
+            <label style="font-size: 0.9rem; font-weight: 600;">Nom du Projet</label>
+            <input type="text" id="projectName" placeholder="Ex: Paris 12e..."
+                style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        </div>
 
         <div class="control-group">
             <h3>1. Localisation</h3>
@@ -145,57 +176,85 @@
         </div>
 
         <div class="control-group">
-            <h3>2. Zone de Sélection</h3>
-            <div class="info" style="margin-bottom:10px;">
-                Dessinez la forme de découpe pour votre carte.
-            </div>
-
+            <h3>2. Zone de Découpe</h3>
             <div style="display: flex; gap: 10px; margin-bottom:10px;">
-                <button onclick="drawPentagram()"
-                    style="background-color: #d946ef; text-align:center; justify-content:center;">
-                    ⭐ Tracer Pentagramme
+                <button onclick="initPentagon()" style="background-color: #d946ef;">
+                    ⬠ Pentagone
                 </button>
-                <button onclick="drawRectangle()" class="secondary" title="Rectangle Standard">
+                <button onclick="drawRectangle()" class="secondary">
                     ⬛ Carré
                 </button>
+            </div>
+
+            <!-- Slider Taille -->
+            <div style="margin-top: 5px;">
+                <div style="display:flex; justify-content:space-between;">
+                    <label style="font-size: 0.9rem; font-weight: 600;">Taille</label>
+                    <span id="radiusVal" style="font-size: 0.8rem; color:#666;">2.0 km</span>
+                </div>
+                <input type="range" id="radiusInput" min="500" max="15000" step="100" value="2000"
+                    style="width: 100%; accent-color: #d946ef;" oninput="updatePentagonTransform()">
+            </div>
+
+            <!-- Slider Rotation -->
+            <div style="margin-top: 10px;">
+                <div style="display:flex; justify-content:space-between;">
+                    <label style="font-size: 0.9rem; font-weight: 600;">Rotation</label>
+                    <span id="rotVal" style="font-size: 0.8rem; color:#666;">0°</span>
+                </div>
+                <input type="range" id="rotInput" min="0" max="360" step="5" value="0"
+                    style="width: 100%; accent-color: #d946ef;" oninput="updatePentagonTransform()">
             </div>
 
             <div id="zone-status" class="info" style="color: red;">Aucune zone dessinée.</div>
         </div>
 
         <div class="control-group">
-            <h3>3. Exports Vectoriels Séparés</h3>
-            <div class="info" style="margin-bottom:15px;">
-                Le fichier SVG sera <strong>automatiquement découpé</strong> à la forme choisie (Étoile/Carré).
+            <h3>3. Sélectionner les Couches</h3>
+            <div class="info" style="margin-bottom:10px;">
+                Cochez les éléments à inclure dans le téléchargement.
             </div>
 
-            <button onclick="downloadSVG('routes_grands')">
-                <span>🛣️ Autoroutes & Nationales</span>
-                <small>Epais</small>
-            </button>
-            <button onclick="downloadSVG('routes_secondaires')">
-                <span>🚗 Routes Principales</span>
-                <small>Moyen</small>
-            </button>
-            <button onclick="downloadSVG('routes_locales')">
-                <span>🏘️ Rues Locales</span>
-                <small>Fin</small>
-            </button>
-            <div style="height:10px;"></div>
-            <button onclick="downloadSVG('eau')" style="background-color: #3b82f6;">
-                <span>💧 Fleuves & Lacs</span>
-                <small>Avec Épaisseur</small>
-            </button>
-            <button onclick="downloadSVG('bati')" style="background-color: #4b5563;">
-                <span>🏢 Bâtiments</span>
+            <div class="layer-list">
+                <label class="layer-item">
+                    <input type="checkbox" id="chk_routes_grands" checked>
+                    <span>🛣️ Autoroutes & Nationales</span>
+                    <span class="badge">Épais</span>
+                </label>
+                <label class="layer-item">
+                    <input type="checkbox" id="chk_routes_secondaires" checked>
+                    <span>🚗 Routes Principales</span>
+                    <span class="badge">Moyen</span>
+                </label>
+                <label class="layer-item">
+                    <input type="checkbox" id="chk_routes_locales" checked>
+                    <span>🏘️ Rues Locales</span>
+                    <span class="badge">Fin</span>
+                </label>
+                <label class="layer-item">
+                    <input type="checkbox" id="chk_eau" checked>
+                    <span>💧 Fleuves & Lacs</span>
+                    <span class="badge">Rempli</span>
+                </label>
+                <label class="layer-item">
+                    <input type="checkbox" id="chk_bati">
+                    <span>🏢 Bâtiments</span>
+                    <span class="badge">Lourd</span>
+                </label>
+            </div>
+
+            <br>
+            <button onclick="downloadSelectedLayers()" style="font-size: 1.1rem; padding: 15px;">
+                ⬇️ TÉLÉCHARGER LA SÉLECTION
             </button>
 
-            <div id="status" class="info" style="font-weight: bold; color: var(--primary); margin-top:10px;"></div>
+            <div id="global-status" class="info" style="font-weight: bold; color: var(--primary); margin-top:10px;">
+            </div>
         </div>
 
         <div class="control-group">
             <h3>4. Rendu Visuel</h3>
-            <div class="layer-btn-group">
+            <div style="display:flex; gap:10px">
                 <button class="secondary" onclick="setLayer('light')">Blanc</button>
                 <button class="secondary" onclick="setLayer('dark')">Noir</button>
             </div>
@@ -208,8 +267,8 @@
     <script>
         // Init Map
         const map = L.map('map').setView([48.8566, 2.3522], 13);
-        
-        // Layers Definitions
+
+        // Layers
         const layers = {
             osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }),
             light: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CartoDB' }),
@@ -219,14 +278,14 @@
 
         function setLayer(name) {
             map.eachLayer(layer => {
-                if(layer._url) map.removeLayer(layer); // Remove only tiles, keep draw layer
+                if (layer._url) map.removeLayer(layer);
             });
             layers[name].addTo(map);
         }
 
-        // Search Control
+        // Search
         L.Control.geocoder({ defaultMarkGeocode: false })
-            .on('markgeocode', function(e) {
+            .on('markgeocode', function (e) {
                 const bbox = e.geocode.bbox;
                 const poly = L.polygon([bbox.getSouthEast(), bbox.getNorthEast(), bbox.getNorthWest(), bbox.getSouthWest()]);
                 map.fitBounds(poly.getBounds());
@@ -236,75 +295,121 @@
         // --- DRAW FEATURE ---
         const drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
-        
-        // Manual Draw Controls
+
         let selectedBounds = null;
-        let selectedShapeLayer = null; // Store the polygon layer (rectangle or star)
+        let selectedShapeLayer = null;
+        let isPentagonActive = false;
+        let pentagonCenter = null;
 
         function drawRectangle() {
-             // Utilisation du draw control natif Leaflet Draw pour carré
-             new L.Draw.Rectangle(map, {
-                 shapeOptions: { color: '#2563eb' }
-             }).enable();
+            isPentagonActive = false;
+            pentagonCenter = null;
+            new L.Draw.Rectangle(map, { shapeOptions: { color: '#2563eb' } }).enable();
         }
 
-        // --- PENTAGRAM LOGIC ---
-        function drawPentagram() {
-            drawnItems.clearLayers();
-            
+        function updatePentagonTransform() {
+            const r = document.getElementById('radiusInput').value;
+            const rot = document.getElementById('rotInput').value;
+
+            document.getElementById('radiusVal').textContent = (r / 1000).toFixed(1) + " km";
+            document.getElementById('rotVal').textContent = rot + "°";
+
+            if (isPentagonActive && pentagonCenter) {
+                drawPentagon(pentagonCenter);
+            }
+        }
+
+        function initPentagon() {
             const center = map.getCenter();
-            // Radius in degrees (approx)
-            const rOuter = 0.02; // ~2km
-            const rInner = 0.008; 
-            
+            drawPentagon(center);
+        }
+
+        // --- PENTAGON LOGIC (RESIZABLE + ROTATABLE) ---
+        function drawPentagon(center) {
+            drawnItems.clearLayers();
+            pentagonCenter = center;
+
+            // Radius from slider
+            const rMeters = parseInt(document.getElementById('radiusInput').value);
+            const radiusDeg = rMeters / 111320;
+
+            // Rotation from slider (deg -> rad)
+            const rotDeg = parseInt(document.getElementById('rotInput').value);
+            const rotRad = rotDeg * (Math.PI / 180);
+
             const points = [];
-            const steps = 5;
-            const rot = -Math.PI / 2; // Point up
-            
-            for (let i = 0; i < steps * 2; i++) {
-                const radius = i % 2 === 0 ? rOuter : rInner;
-                const angle = (i * Math.PI) / steps + rot;
-                
-                // Correction aspect pour que l'étoile soit "droite" visuellement sur Mercator
-                // Latitude = Y, Longitude = X. 
-                // X doit être divisé par cos(lat)
-                const latOffset = radius * Math.sin(angle);
-                const lonOffset = (radius * Math.cos(angle)) / Math.cos(center.lat * Math.PI/180);
-                
+            const sides = 5;
+            const baseRot = -Math.PI / 2; // Point up default
+
+            for (let i = 0; i < sides; i++) {
+                const angle = (i * 2 * Math.PI) / sides + baseRot + rotRad;
+                const latOffset = radiusDeg * Math.sin(angle);
+                const lonOffset = (radiusDeg * Math.cos(angle)) / Math.cos(center.lat * Math.PI / 180);
+
                 points.push([center.lat + latOffset, center.lng + lonOffset]);
             }
-
-            const polygon = L.polygon(points, {color: '#d946ef', weight: 3});
+            const polygon = L.polygon(points, { color: '#d946ef', weight: 3 });
             drawnItems.addLayer(polygon);
-            
             selectedShapeLayer = polygon;
             selectedBounds = polygon.getBounds();
-            
-            document.getElementById('zone-status').innerHTML = "⭐ Pentagramme Actif";
+
+            isPentagonActive = true;
+            document.getElementById('zone-status').innerHTML = "⬠ Pentagone Actif (" + (rMeters / 1000) + "km)";
             document.getElementById('zone-status').style.color = "#d946ef";
         }
 
-        // Standard Leaflet Draw Events (for rectangle)
+        // Events
         map.on(L.Draw.Event.CREATED, function (e) {
             drawnItems.clearLayers();
-            const layer = e.layer;
-            drawnItems.addLayer(layer);
-            
-            selectedShapeLayer = layer;
-            selectedBounds = layer.getBounds();
-            
-            document.getElementById('zone-status').innerHTML = "✅ Zone Valide";
+            drawnItems.addLayer(e.layer);
+            selectedShapeLayer = e.layer;
+            selectedBounds = e.layer.getBounds();
+            isPentagonActive = false;
+            document.getElementById('zone-status').innerHTML = "✅ Zone Valide (Manuel)";
             document.getElementById('zone-status').style.color = "green";
         });
 
 
-        // --- LOGIQUE SVG ---
-        
+        // --- BATCH DOWNLOAD LOGIC ---
+
+        async function downloadSelectedLayers() {
+            if (map.getZoom() < 12) {
+                if (!confirm("⚠️ ATTENTION : Vous êtes très dézoomé.\nLa zone demandée est gigantesque.\n\nLe serveur risque de planter (Erreur 504 Timeout).\n\nConseil : Zoomez plus près ou réduisez la zone.\nVoulez-vous quand même tenter ?")) return;
+            }
+
+            const layers = [
+                { id: 'chk_routes_grands', type: 'routes_grands' },
+                { id: 'chk_routes_secondaires', type: 'routes_secondaires' },
+                { id: 'chk_routes_locales', type: 'routes_locales' },
+                { id: 'chk_eau', type: 'eau' },
+                { id: 'chk_bati', type: 'bati' }
+            ];
+
+            const activeLayers = layers.filter(l => document.getElementById(l.id).checked);
+
+            if (activeLayers.length === 0) {
+                alert("Veuillez cocher au moins une couche !");
+                return;
+            }
+
+            const status = document.getElementById("global-status");
+            status.textContent = "Démarrage des exports...";
+
+            for (const layer of activeLayers) {
+                status.textContent = "Téléchargement : " + layer.type + "...";
+                await downloadSVG(layer.type);
+                await new Promise(r => setTimeout(r, 1500));
+            }
+
+            status.textContent = "✅ Tous les fichiers sont prêts !";
+        }
+
+        // --- CORE SVG LOGIC ---
+
         async function downloadSVG(type) {
             let bounds = selectedBounds;
-            
             if (!bounds) {
-                if(!confirm("Pas de zone dessinée. Export sur tout l'écran ?")) return;
+                if (!confirm("Pas de zone. Tout l'écran ?")) return;
                 bounds = map.getBounds();
             }
 
@@ -312,165 +417,212 @@
             const w = bounds.getWest();
             const n = bounds.getNorth();
             const e = bounds.getEast();
-            
-            const status = document.getElementById("status");
-            status.textContent = "Téléchargement...";
 
             let queryFilter = "";
+            let niceName = type;
 
             if (type === 'routes_grands') {
-                queryFilter = `way["highway"~"motorway|trunk|primary|motorway_link|trunk_link|primary_link"](${s},${w},${n},${e});`;
-            } else if (type === 'routes_secondaires') {
-                queryFilter = `way["highway"~"secondary|tertiary|secondary_link|tertiary_link"](${s},${w},${n},${e});`;
-            } else if (type === 'routes_locales') {
-                queryFilter = `way["highway"~"residential|unclassified|living_street|service"](${s},${w},${n},${e});`;
-            } else if (type === 'eau') {
+                queryFilter = `way["highway"~"motorway|trunk|primary"](${s},${w},${n},${e});`;
+                niceName = "Autoroutes";
+            }
+            else if (type === 'routes_secondaires') {
+                queryFilter = `way["highway"~"secondary|tertiary"](${s},${w},${n},${e});`;
+                niceName = "Routes_Principales";
+            }
+            else if (type === 'routes_locales') {
+                queryFilter = `way["highway"~"residential|unclassified|living_street"](${s},${w},${n},${e});`;
+                niceName = "Rues";
+            }
+            else if (type === 'eau') {
                 queryFilter = `way["natural"="water"](${s},${w},${n},${e}); way["waterway"](${s},${w},${n},${e});`;
-            } else if (type === 'bati') {
+                niceName = "Eau";
+            }
+            else if (type === 'bati') {
                 queryFilter = `way["building"](${s},${w},${n},${e});`;
+                niceName = "Batiments";
             }
 
-            const query = `
-                [out:json][timeout:180];
-                (
-                    ${queryFilter}
-                );
-                out geom tags;
-            `;
+            // Construct Filename
+            const rawProjectName = document.getElementById('projectName').value.trim();
+            const safeProjectName = rawProjectName ? rawProjectName.replace(/[^a-z0-9]/gi, '_') : "Carte_Laser";
+            const dateStr = new Date().toISOString().split('T')[0];
+            const filename = `${safeProjectName}_${niceName}_${dateStr}.svg`;
 
+            const query = `[out:json][timeout:300]; (${queryFilter}); out geom tags;`;
             const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
             try {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error("Erreur Overpass");
+                if (!response.ok) throw new Error("Erreur API " + response.status);
                 const data = await response.json();
-                
-                status.textContent = "Découpe forme...";
                 const svgContent = generateSVGFromJSON(data, bounds, type);
-                
-                if (svgContent) {
-                    downloadStringAsFile(svgContent, `export_${type}.svg`);
-                    status.textContent = "Terminé ! ✅";
-                } else {
-                    status.textContent = "Aucune donnée.";
-                }
 
+                if (svgContent) downloadStringAsFile(svgContent, filename);
             } catch (err) {
                 console.error(err);
-                status.textContent = "Erreur.";
-                alert("Erreur : " + err.message);
+                const status = document.getElementById("global-status");
+                status.textContent = "❌ Erreur " + type + " (Timeout/Trop grand)";
             }
         }
 
-        // Convertisseur JSON -> SVG avec CLIP-PATH
         function generateSVGFromJSON(data, bounds, layerType) {
             if (!data.elements || data.elements.length === 0) return null;
 
-            // Projection Mercator
             const minLat = bounds.getSouth();
             const maxLat = bounds.getNorth();
             const minLon = bounds.getWest();
             const maxLon = bounds.getEast();
-            
+
+            // Projection Setup
             const midLat = (minLat + maxLat) / 2;
             const cosLat = Math.cos(midLat * Math.PI / 180);
             const widthSvg = 1000 * ((maxLon - minLon) / (maxLat - minLat)) * cosLat;
             const heightSvg = 1000;
 
-            // --- GENERATION DU CLIP PATH (Forme de découpe) ---
-            let clipPathD = ""; // Le chemin SVG de la forme de découpe
-            
+            // Helper: LatLon -> SVG px
+            function project(lat, lon) {
+                const px = ((lon - minLon) / (maxLon - minLon)) * widthSvg;
+                const py = 1000 - ((lat - minLat) / (maxLat - minLat) * 1000);
+                return [px, py];
+            }
+
+            // Clip Path Logic
+            let clipPathD = "";
             if (selectedShapeLayer && selectedShapeLayer instanceof L.Polygon) {
-                // C'est un polygone (Etoile)
-                const latlngs = selectedShapeLayer.getLatLngs()[0]; // Outer ring
-                let isFirst = true;
-                latlngs.forEach(pt => {
-                    const px = ((pt.lng - minLon) / (maxLon - minLon)) * widthSvg;
-                    const py = 1000 - ((pt.lat - minLat) / (maxLat - minLat) * 1000);
-                    clipPathD += (isFirst ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
-                    isFirst = false;
+                const latlngs = selectedShapeLayer.getLatLngs()[0];
+                latlngs.forEach((pt, i) => {
+                    const [px, py] = project(pt.lat, pt.lng);
+                    clipPathD += (i === 0 ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
                 });
                 clipPathD += " Z";
             } else {
-                // Rectangle par défaut (Clip full)
                 clipPathD = `M 0 0 L ${widthSvg} 0 L ${widthSvg} 1000 L 0 1000 Z`;
             }
 
+            // --- TURF.JS GEOMETRY PROCESSING (For Water) ---
+
             let paths = [];
 
-            data.elements.forEach(el => {
-                if (!el.geometry || el.geometry.length < 2) return;
+            if (layerType === 'eau') {
+                // Collect GeoJSON Features
+                let featuresToUnion = [];
 
-                // --- PRE-CALCUL GEOMETRIE ---
-                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-                
-                const projectedPts = el.geometry.map(pt => {
-                    const px = ((pt.lon - minLon) / (maxLon - minLon)) * widthSvg;
-                    const py = 1000 - ((pt.lat - minLat) / (maxLat - minLat) * 1000);
-                    if(px < minX) minX = px; if(px > maxX) maxX = px;
-                    if(py < minY) minY = py; if(py > maxY) maxY = py;
-                    return {x: px, y: py};
-                });
+                // Calculate approx meters per pixel for buffer
+                // Earth circum = 40075km. 1 deg lat = 111km.
+                // Height in degrees = maxLat - minLat.
+                // Height in meters = (maxLat - minLat) * 111320.
+                // SVG Height = 1000px.
+                // Meters per px = HeightM / 1000.
+                const metersPerPx = ((maxLat - minLat) * 111320) / 1000;
 
-                if (layerType === 'eau') {
-                    if ((maxX - minX) < 10 && (maxY - minY) < 10) return;
-                }
+                data.elements.forEach(el => {
+                    if (!el.geometry || el.geometry.length < 2) return;
 
-                // Style
-                let strokeWidth = 1;
-                let strokeColor = "black";
-                let fill = "none";
-                
-                if (layerType === 'eau') {
-                    const isRiverLine = el.tags && el.tags.waterway;
-                    if (isRiverLine) {
-                         if (el.tags.waterway === 'river') strokeWidth = 25;
-                         else if (el.tags.waterway === 'canal') strokeWidth = 15;
-                         else if (el.tags.waterway === 'stream') strokeWidth = 3;
-                         else strokeWidth = 8;
+                    const isArea = (el.tags.natural === 'water' || el.tags.waterway === 'riverbank' || el.tags.landuse === 'reservoir');
+                    const isLinear = (el.tags.waterway === 'river' || el.tags.waterway === 'canal' || el.tags.waterway === 'stream');
+
+                    // Convert OSM geometry to Coordinates [[lon, lat], ...]
+                    const coords = el.geometry.map(pt => [pt.lon, pt.lat]);
+
+                    if (isArea) {
+                        // Close polygon if needed
+                        if (coords[0][0] !== coords[coords.length - 1][0] || coords[0][1] !== coords[coords.length - 1][1]) {
+                            coords.push(coords[0]);
+                        }
+                        // Add to collection
+                        try {
+                            featuresToUnion.push(turf.polygon([coords]));
+                        } catch (e) { /* Invalid geometry */ }
                     }
-                }
-                else if (layerType === 'routes_grands') strokeWidth = 5; 
-                else if (layerType === 'routes_secondaires') strokeWidth = 3;
+                    else if (isLinear) {
+                        // Buffer Width (Pixels -> Meters)
+                        let pxWidth = 8;
+                        if (el.tags.waterway === 'river') pxWidth = 25;
+                        if (el.tags.waterway === 'canal') pxWidth = 15;
 
-                // Path construction
-                let d = "";
-                projectedPts.forEach((pt, i) => {
-                    d += (i === 0 ? "M " : " L ") + pt.x.toFixed(2) + " " + pt.y.toFixed(2);
+                        const bufferDist = (pxWidth * metersPerPx) / 2; // Radius
+
+                        try {
+                            const line = turf.lineString(coords);
+                            const buffered = turf.buffer(line, bufferDist, { units: 'meters' });
+                            featuresToUnion.push(buffered);
+                        } catch (e) { }
+                    }
                 });
-                 
-                // Close poly
-                const first = projectedPts[0];
-                const last = projectedPts[projectedPts.length-1];
-                if (Math.abs(first.x - last.x) < 0.1 && Math.abs(first.y - last.y) < 0.1) {
-                    d += " Z";
+
+                // UNION EVERYTHING
+                if (featuresToUnion.length > 0) {
+                    let merged = featuresToUnion[0];
+                    for (let i = 1; i < featuresToUnion.length; i++) {
+                        try {
+                            merged = turf.union(merged, featuresToUnion[i]);
+                        } catch (e) { /* Ignore merge fail */ }
+                    }
+
+                    // DRAW RESULT
+                    // Merged can be Polygon or MultiPolygon
+                    const geoms = (merged.geometry.type === 'Polygon') ? [merged.geometry.coordinates] : merged.geometry.coordinates;
+
+                    geoms.forEach(polyCoords => {
+                        // Polygon has [OuterRing, Hole1, Hole2...]
+                        polyCoords.forEach(ring => {
+                            let d = "";
+                            ring.forEach((pt, i) => {
+                                const [px, py] = project(pt[1], pt[0]); // GeoJSON is Lon,Lat. Project wants Lat,Lon
+                                d += (i === 0 ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
+                            });
+                            d += " Z";
+                            paths.push(`<path d="${d}" fill="black" stroke="none" />`);
+                        });
+                    });
                 }
 
-                paths.push(`<path d="${d}" fill="${fill}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />`);
-            });
+            } else {
+                // --- STANDARD LOGIC FOR ROADS (NON-MERGED) ---
+                data.elements.forEach(el => {
+                    if (!el.geometry || el.geometry.length < 2) return;
+
+                    let strokeWidth = 1;
+                    if (layerType === 'routes_grands') strokeWidth = 5;
+                    else if (layerType === 'routes_secondaires') strokeWidth = 3;
+                    else if (layerType === 'bati') {
+                        // Buildings are shapes
+                        let d = "";
+                        el.geometry.forEach((pt, i) => {
+                            const [px, py] = project(pt.lat, pt.lon);
+                            d += (i === 0 ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
+                        });
+                        // Close loop for buildings
+                        d += " Z";
+                        paths.push(`<path d="${d}" fill="black" stroke="none" />`);
+                        return; // Skip the line drawing below
+                    }
+
+                    // Project
+                    let d = "";
+                    el.geometry.forEach((pt, i) => {
+                        const [px, py] = project(pt.lat, pt.lon);
+                        d += (i === 0 ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
+                    });
+
+                    paths.push(`<path d="${d}" fill="none" stroke="black" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" />`);
+                });
+            }
 
             if (paths.length === 0) return null;
 
-            // <g clip-path="url(#shapeClip)"> applique la découpe magique sur tout le contenu !
             return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 ${widthSvg.toFixed(2)} ${heightSvg}">
-  <defs>
-    <clipPath id="shapeClip">
-      <path d="${clipPathD}" />
-    </clipPath>
-  </defs>
-  
+  <defs><clipPath id="shapeClip"><path d="${clipPathD}"/></clipPath></defs>
   <g id="layer_${layerType}" clip-path="url(#shapeClip)">
     ${paths.join("\n    ")}
   </g>
-  
-  <!-- Optionnel: Dessiner le contour de découpe pour le laser -->
   <path d="${clipPathD}" fill="none" stroke="red" stroke-width="2" id="cut_line" />
 </svg>`;
         }
 
         function downloadStringAsFile(content, filename) {
-            const blob = new Blob([content], {type: 'image/svg+xml'});
+            const blob = new Blob([content], { type: 'image/svg+xml' });
             const link = document.createElement('a');
             link.href = window.URL.createObjectURL(blob);
             link.download = filename;
