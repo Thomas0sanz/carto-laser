@@ -161,9 +161,9 @@
 <body>
 
     <div id="sidebar">
-        <h1>Carte Laser (OSM) V25 ⬠</h1>
-        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V25 (Épaisseurs
-            Variables)</div>
+        <h1>Carte Laser (OSM) V26 ⬠</h1>
+        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V26 (Axes vs
+            Surfaces)</div>
 
         <!-- Nom du Projet -->
         <div style="margin-bottom: 20px;">
@@ -252,6 +252,15 @@
                     Fusionner les tracés (1 objet/calque)
                 </label>
 
+                <!-- V26: Mode Tracé (Axe vs Surface) -->
+                <div style="margin-top:10px;">
+                    <label style="font-size:0.8rem; font-weight:600;">Géométrie des Routes</label>
+                    <select id="roadMode" style="width:100%; padding:4px; margin-top:4px;">
+                        <option value="surface">🛣️ Bande Physique (Double trait/Surface)</option>
+                        <option value="centerline">📍 Axe Central (Trait unique)</option>
+                    </select>
+                </div>
+
                 <!-- V21: Dimensions Physiques -->
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
                     <div>
@@ -270,8 +279,8 @@
                 <div style="margin-top:10px;">
                     <label style="font-size:0.8rem; font-weight:600;">Style de Rendu</label>
                     <select id="renderStyle" style="width:100%; padding:4px; margin-top:4px;">
-                        <option value="fill">⬛ Remplissage (Surface/Gravure)</option>
                         <option value="stroke">⭕ Contour (Découpe Vectorielle)</option>
+                        <option value="fill">⬛ Remplissage (Surface/Gravure)</option>
                     </select>
                 </div>
             </div>
@@ -445,6 +454,7 @@
             const targetWidthCm = parseFloat(document.getElementById('exportWidth').value) || 10;
             const roadThickMm = parseFloat(document.getElementById('roadThick').value) || 4;
             const renderStyle = document.getElementById('renderStyle').value; // 'fill' or 'stroke'
+            const roadMode = document.getElementById('roadMode').value; // 'surface' or 'centerline' (V26)
 
             if (activeLayers.length === 0) {
                 alert("Veuillez cocher au moins une couche !");
@@ -452,7 +462,7 @@
             }
 
             const status = document.getElementById("global-status");
-            status.textContent = "Démarrage V25...";
+            status.textContent = "Démarrage V26...";
 
             // Prepare SVG Dimensions
             const bounds = selectedBounds || map.getBounds();
@@ -528,14 +538,20 @@
                     let radius = 0;
 
                     if (layer.type.startsWith('routes')) {
-                        useBuffer = true;
-                        // Base Thickness
-                        let multiplier = 1.0;
-                        if (layer.type === 'routes_secondaires') multiplier = 0.7; // 70%
-                        if (layer.type === 'routes_locales') multiplier = 0.4;    // 40%
+                        // V26: Check Geometry Mode
+                        if (roadMode === 'surface') {
+                            useBuffer = true;
+                            // Base Thickness
+                            let multiplier = 1.0;
+                            if (layer.type === 'routes_secondaires') multiplier = 0.7;
+                            if (layer.type === 'routes_locales') multiplier = 0.4;
 
-                        // (Mm / 10 / 2) * MetersPerCm * Multiplier
-                        radius = ((roadThickMm / 10 / 2) * metersPerCm) * multiplier;
+                            radius = ((roadThickMm / 10 / 2) * metersPerCm) * multiplier;
+                        } else {
+                            // Centerline Mode: No Buffer
+                            useBuffer = false;
+                            radius = 0;
+                        }
                     }
 
                     // Generate Geometry
