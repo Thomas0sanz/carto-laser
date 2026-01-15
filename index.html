@@ -161,97 +161,103 @@
 <body>
 
     <div id="sidebar">
-        <h1>Carte Laser (OSM) V18 ⬠</h1>
-        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V18 (Kumi API)
-        </div>
+        <h1>Carte Laser (OSM) V19 ⬠</h1>
+        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V19 (Compound
+            Paths)</div>
+    </div>
 
-        <!-- Nom du Projet -->
-        <div style="margin-bottom: 20px;">
-            <label style="font-size: 0.9rem; font-weight: 600;">Nom du Projet</label>
-            <input type="text" id="projectName" placeholder="Ex: Paris 12e..."
-                style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
-        </div>
+    <!-- Nom du Projet -->
+    <div style="margin-bottom: 20px;">
+        <label style="font-size: 0.9rem; font-weight: 600;">Nom du Projet</label>
+        <input type="text" id="projectName" placeholder="Ex: Paris 12e..."
+            style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+    </div>
 
-        <div class="control-group">
-            <h3>1. Localisation</h3>
-            <div class="info">Utilisez la loupe sur la carte pour chercher une ville.</div>
-        </div>
+    <div class="control-group">
+        <h3>1. Localisation</h3>
+        <div class="info">Utilisez la loupe sur la carte pour chercher une ville.</div>
+    </div>
 
-        <div class="control-group">
-            <h3>2. Zone de Découpe</h3>
-            <div style="display: flex; gap: 10px; margin-bottom:10px;">
-                <button onclick="initPentagon()" style="background-color: #d946ef;">
-                    ⬠ Pentagone
-                </button>
-                <button onclick="drawRectangle()" class="secondary">
-                    ⬛ Carré
-                </button>
-            </div>
-
-            <!-- Slider Taille -->
-            <div style="margin-top: 5px;">
-                <div style="display:flex; justify-content:space-between;">
-                    <label style="font-size: 0.9rem; font-weight: 600;">Taille</label>
-                    <span id="radiusVal" style="font-size: 0.8rem; color:#666;">2.0 km</span>
-                </div>
-                <input type="range" id="radiusInput" min="500" max="15000" step="100" value="2000"
-                    style="width: 100%; accent-color: #d946ef;" oninput="updatePentagonTransform()">
-            </div>
-
-            <!-- Slider Rotation -->
-            <div style="margin-top: 10px;">
-                <div style="display:flex; justify-content:space-between;">
-                    <label style="font-size: 0.9rem; font-weight: 600;">Rotation</label>
-                    <span id="rotVal" style="font-size: 0.8rem; color:#666;">0°</span>
-                </div>
-                <input type="range" id="rotInput" min="0" max="360" step="5" value="0"
-                    style="width: 100%; accent-color: #d946ef;" oninput="updatePentagonTransform()">
-            </div>
-
-            <div id="zone-status" class="info" style="color: red;">Aucune zone dessinée.</div>
-        </div>
-
-        <div class="control-group">
-            <h3>3. Sélectionner les Couches</h3>
-            <div class="info" style="margin-bottom:10px;">
-                Cochez les éléments à inclure dans le téléchargement.
-            </div>
-
-            <div class="layer-list">
-                <label class="layer-item">
-                    <input type="checkbox" id="chk_routes_grands" checked>
-                    <span>🛣️ Autoroutes & Nationales</span>
-                    <span class="badge">Épais</span>
-                </label>
-                <label class="layer-item">
-                    <input type="checkbox" id="chk_routes_secondaires" checked>
-                    <span>🚗 Routes Principales</span>
-                    <span class="badge">Moyen</span>
-                </label>
-                <label class="layer-item">
-                    <input type="checkbox" id="chk_routes_locales" checked>
-                    <span>🏘️ Rues Locales</span>
-                    <span class="badge">Fin</span>
-                </label>
-                <label class="layer-item">
-                    <input type="checkbox" id="chk_eau" checked>
-                    <span>💧 Fleuves & Lacs</span>
-                    <span class="badge">Rempli</span>
-                </label>
-                <label class="layer-item">
-                    <input type="checkbox" id="chk_bati">
-                    <span>🏢 Bâtiments</span>
-                    <span class="badge">Lourd</span>
-                </label>
-            </div>
-
-            <br>
-            <button onclick="downloadSelectedLayers()" style="font-size: 1.1rem; padding: 15px;">
-                ⬇️ TÉLÉCHARGER LA SÉLECTION
+    <div class="control-group">
+        <h3>2. Zone de Découpe</h3>
+        <div style="display: flex; gap: 10px; margin-bottom:10px;">
+            <button onclick="initPentagon()" style="background-color: #d946ef;">
+                ⬠ Pentagone
             </button>
+            <button onclick="drawRectangle()" class="secondary">
+                ⬛ Carré
+            </button>
+        </div>
 
-            <div id="global-status" class="info" style="font-weight: bold; color: var(--primary); margin-top:10px;">
+        <!-- Slider Taille -->
+        <div style="margin-top: 5px;">
+            <div style="display:flex; justify-content:space-between;">
+                <label style="font-size: 0.9rem; font-weight: 600;">Taille</label>
+                <span id="radiusVal" style="font-size: 0.8rem; color:#666;">2.0 km</span>
             </div>
+            <input type="range" id="radiusInput" min="500" max="15000" step="100" value="2000"
+                style="width: 100%; accent-color: #d946ef;" oninput="updatePentagonTransform()">
+        </div>
+
+        <!-- Slider Rotation -->
+        <div style="margin-top: 10px;">
+            <div style="display:flex; justify-content:space-between;">
+                <label style="font-size: 0.9rem; font-weight: 600;">Rotation</label>
+                <span id="rotVal" style="font-size: 0.8rem; color:#666;">0°</span>
+            </div>
+            <input type="range" id="rotInput" min="0" max="360" step="5" value="0"
+                style="width: 100%; accent-color: #d946ef;" oninput="updatePentagonTransform()">
+        </div>
+
+        <div id="zone-status" class="info" style="color: red;">Aucune zone dessinée.</div>
+    </div>
+
+    <div class="control-group">
+        <h3>3. Sélectionner les Couches</h3>
+        <div class="info" style="margin-bottom:10px;">
+            Cochez les éléments à inclure dans le téléchargement.
+        </div>
+
+        <div class="layer-list">
+            <label class="layer-item">
+                <input type="checkbox" id="chk_routes_grands" checked>
+                <span>🛣️ Autoroutes & Nationales</span>
+                <span class="badge">Épais</span>
+            </label>
+            <label class="layer-item">
+                <input type="checkbox" id="chk_routes_secondaires" checked>
+                <span>🚗 Routes Principales</span>
+                <span class="badge">Moyen</span>
+            </label>
+            <label class="layer-item">
+                <input type="checkbox" id="chk_routes_locales" checked>
+                <span>🏘️ Rues Locales</span>
+                <span class="badge">Fin</span>
+            </label>
+            <label class="layer-item">
+                <input type="checkbox" id="chk_eau" checked>
+                <span>💧 Fleuves & Lacs</span>
+                <!-- Couches -->
+                <div id="layersList">
+                    <!-- Checkboxes generated by JS -->
+                </div>
+
+                <!-- Options Export -->
+                <div style="margin-top:20px; border-top:1px solid #ddd; padding-top:10px;">
+                    <label style="font-size:0.9rem; display:flex; align-items:center; cursor:pointer;">
+                        <input type="checkbox" id="chk_merge" checked style="accent-color:#d946ef; margin-right:8px;">
+                        Fusionner les tracés (1 objet/calque)
+                    </label>
+                    <div style="font-size:0.75rem; color:#666; margin-left:24px;">Idéal pour Illustrator/Laser</div>
+                </div>
+
+                <button onclick="downloadSelectedLayers()"
+                    style="width: 100%; margin-top: 20px; padding: 12px; background: #d946ef; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                    Télécharger SVG (Batch)
+                </button>
+
+                <div id="global-status" class="info" style="font-weight: bold; color: var(--primary); margin-top:10px;">
+                </div>
         </div>
 
         <div class="control-group">
@@ -411,6 +417,7 @@
             ];
 
             const activeLayers = layers.filter(l => document.getElementById(l.id).checked);
+            const shouldMerge = document.getElementById('chk_merge').checked;
 
             if (activeLayers.length === 0) {
                 alert("Veuillez cocher au moins une couche !");
@@ -481,7 +488,7 @@
                     status.textContent = `${layer.name}: ${data.elements ? data.elements.length : 0} objets...`;
 
                     // Generate Geometry
-                    const groupContent = processLayerGeometry(data, layer, maskPolygon, project, metersPerPx(maxLat, minLat));
+                    const groupContent = processLayerGeometry(data, layer, maskPolygon, project, metersPerPx(maxLat, minLat), shouldMerge);
 
                     if (groupContent) {
                         // Generate Individual SVG for this layer
@@ -520,10 +527,11 @@
         }
 
         // --- GEOMETRY PROCESSOR (CLIPPING) ---
-        function processLayerGeometry(data, layer, maskPolygon, projectFn, mPerPx) {
+        function processLayerGeometry(data, layer, maskPolygon, projectFn, mPerPx, shouldMerge) {
             if (!data.elements) return "";
 
             let parts = []; // SVG Paths
+            let compoundD = ""; // Accumulator for merged path
 
             // 1. Convert to Turf Features
             let features = [];
@@ -573,15 +581,16 @@
                 if (!f) return;
 
                 try {
+                    let geometryToDraw = null;
+
                     if (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon') {
                         // Polygon Clipping
-                        const clipped = turf.intersect(f, maskPolygon);
-                        if (clipped) drawFeature(clipped, parts, projectFn);
+                        geometryToDraw = turf.intersect(f, maskPolygon);
                     }
                     else if (f.geometry.type === 'LineString') {
                         // Line Clipping
                         if (turf.booleanWithin(f, maskPolygon)) {
-                            drawFeature(f, parts, projectFn);
+                            geometryToDraw = f;
                         } else {
                             // Split logic with Fallback
                             const split = turf.lineSplit(f, maskPolygon);
@@ -598,53 +607,59 @@
                             segments.forEach(seg => {
                                 const mid = turf.midpoint(seg);
                                 if (turf.booleanPointInPolygon(mid, maskPolygon)) {
-                                    drawFeature(seg, parts, projectFn);
+                                    // Process this segment
+                                    processFeatureToPath(seg, projectFn, shouldMerge, parts, (d) => compoundD += d + " ");
                                 }
                             });
+                            return; // Skip standard processing for split lines
                         }
                     }
+
+                    if (geometryToDraw) {
+                        processFeatureToPath(geometryToDraw, projectFn, shouldMerge, parts, (d) => compoundD += d + " ");
+                    }
+
                 } catch (e) {
                     // On geometric error, fallback to keeping the original if it touches the box
                     // console.warn("Geo error", e); 
                 }
             });
 
-            return parts.join("\n");
+            if (shouldMerge && compoundD.trim() !== "") {
+                // Return ONE path
+                return `<path d="${compoundD}" vector-effect="non-scaling-stroke" />`;
+            } else {
+                return parts.join("\n");
+            }
         }
 
-        function drawFeature(feature, parts, projectFn) {
-            const geoms = (feature.geometry.type === 'MultiPolygon' || feature.geometry.type === 'MultiLineString')
-                ? feature.geometry.coordinates
-                : [feature.geometry.coordinates];
-
-            // Helper to recursively handle multi-depth
-            // Polygon: [[Ring], [Hole]] -> Ring is [pt, pt]
-            // MultiPolygon: [[[Ring], [Hole]], [[Ring]]]
-            // LineString: [pt, pt]
-
-            // Unify structure traversal is annoying. Simplification:
+        function processFeatureToPath(feature, projectFn, shouldMerge, partsList, onCompound) {
             turf.flatten(feature).features.forEach(f => {
                 const coords = f.geometry.coordinates;
                 const type = f.geometry.type;
+                let d = "";
 
                 if (type === 'Polygon') {
                     coords.forEach(ring => {
-                        let d = "";
                         ring.forEach((pt, i) => {
                             const [px, py] = projectFn(pt[1], pt[0]);
                             d += (i === 0 ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
                         });
-                        d += " Z";
-                        parts.push(`<path d="${d}" vector-effect="non-scaling-stroke" />`);
+                        d += " Z ";
                     });
                 }
                 else if (type === 'LineString') {
-                    let d = "";
                     coords.forEach((pt, i) => {
                         const [px, py] = projectFn(pt[1], pt[0]);
                         d += (i === 0 ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
                     });
-                    parts.push(`<path d="${d}" fill="none" vector-effect="non-scaling-stroke" />`);
+                    // Lines don't close automatically
+                }
+
+                if (shouldMerge) {
+                    onCompound(d);
+                } else {
+                    partsList.push(`<path d="${d}" fill="${type === 'Polygon' ? 'black' : 'none'}" vector-effect="non-scaling-stroke" />`);
                 }
             });
         }
