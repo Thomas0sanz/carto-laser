@@ -161,7 +161,9 @@
 <body>
 
     <div id="sidebar">
-        <h1>Carte Laser (OSM) V17 ⬠</h1>
+        <h1>Carte Laser (OSM) V18 ⬠</h1>
+        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V18 (Kumi API)
+        </div>
 
         <!-- Nom du Projet -->
         <div style="margin-bottom: 20px;">
@@ -416,7 +418,7 @@
             }
 
             const status = document.getElementById("global-status");
-            status.textContent = "Démarrage V17 (Cadre d'alignement)...";
+            status.textContent = "Démarrage V18 (Serveur Rapide)...";
 
             // Prepare SVG Dimensions
             const bounds = selectedBounds || map.getBounds();
@@ -469,10 +471,10 @@
                     queryBody = `${queryType}${overpassFilter};`;
                 }
 
-                const query = `[out:json][timeout:300]; (${queryBody}); out geom tags;`;
+                const query = `[out:json][timeout:600]; (${queryBody}); out geom tags;`;
 
                 try {
-                    const resp = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+                    const resp = await fetch(`https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(query)}`);
                     if (!resp.ok) throw new Error("Erreur HTTP " + resp.status);
                     const data = await resp.json();
 
@@ -491,7 +493,7 @@
   <!-- Cadre d'Alignement (Coupe) -->
   <path d="${framePathD}" fill="none" stroke="red" stroke-width="1" id="frame_alignment" />
 </svg>`;
-                        const filename = `${safeProjName}_${layer.name}_V17_${dateStr}.svg`;
+                        const filename = `${safeProjName}_${layer.name}_V18_${dateStr}.svg`;
                         downloadStringAsFile(layerSVG, filename);
                     } else {
                         console.warn("Aucune géométrie pour " + layer.name);
@@ -509,7 +511,7 @@
             }
 
             if (errorCount > 0) alert("Attention : " + errorCount + " calque(s) ont échoué.");
-            status.textContent = errorCount === 0 ? "✅ Export V17 Terminé !" : "⚠️ Terminé avec erreurs.";
+            status.textContent = errorCount === 0 ? "✅ Export V18 Terminé !" : "⚠️ Terminé avec erreurs.";
         }
 
         // Helper: Meters/Px
