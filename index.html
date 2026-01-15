@@ -588,13 +588,13 @@
 
                         const layerSVG = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="${targetWidthCm}cm" height="${targetHeightCm.toFixed(2)}cm" viewBox="0 0 ${widthSvgPx.toFixed(2)} ${heightSvgPx.toFixed(2)}">
-  <g id="${layer.name}" stroke="${strokeVal}" fill="${fillVal}" stroke-width="${strokeWidthVal}">
+  <g id="${layer.name}" stroke="${strokeVal}" fill="${fillVal}" stroke-width="${strokeWidthVal}" stroke-linecap="round" stroke-linejoin="round">
     ${groupContent}
   </g>
   <!-- Cadre d'Alignement -->
   <path d="${framePathD}" fill="none" stroke="red" stroke-width="0.5" vector-effect="non-scaling-stroke" id="frame_alignment" />
 </svg>`;
-                        const filename = `${safeProjName}_${layer.name}_V23_${dateStr}.svg`;
+                        const filename = `${safeProjName}_${layer.name}_V27_${dateStr}.svg`;
                         downloadStringAsFile(layerSVG, filename);
                     } else {
                         console.warn("Aucune géométrie pour " + layer.name);
@@ -611,14 +611,14 @@
             }
 
             if (errorCount > 0) alert("Attention : " + errorCount + " calque(s) ont échoué.");
-            status.textContent = errorCount === 0 ? "✅ Export V21 Terminé !" : "⚠️ Terminé avec erreurs.";
+            status.textContent = errorCount === 0 ? "✅ Export V27 Terminé !" : "⚠️ Terminé avec erreurs.";
         }
 
         function metersPerPx(maxLat, minLat) {
             return ((maxLat - minLat) * 111320) / 1000;
         }
 
-        // --- GEOMETRY PROCESSOR (V22: Buffering & Smoothing) ---
+        // --- GEOMETRY PROCESSOR (V27: Robustness) ---
         function processLayerGeometry(data, layer, maskPolygon, projectFn, mPerPx, shouldMerge, useBuffer, bufferRadius) {
             if (!data.elements) return "";
 
@@ -640,7 +640,7 @@
                         if (el.tags.waterway === 'canal') pxWidth = 15;
                         try {
                             const line = turf.lineString(coords);
-                            const buf = turf.buffer(line, (pxWidth * mPerPx) / 2, { units: 'meters', steps: 16 });
+                            const buf = turf.buffer(line, (pxWidth * mPerPx) / 2, { units: 'meters', steps: 12 });
                             features.push(buf);
                         } catch (e) { }
                     } else {
@@ -657,7 +657,7 @@
                         if (useBuffer) {
                             // Convert Line to Buffered Polygon
                             const cleanLine = turf.cleanCoords(line);
-                            const buf = turf.buffer(cleanLine, bufferRadius, { units: 'meters', steps: 32 });
+                            const buf = turf.buffer(cleanLine, bufferRadius, { units: 'meters', steps: 12 });
                             features.push(buf);
                         } else {
                             features.push(line);
@@ -667,26 +667,39 @@
             });
 
             // 2. UNION (Water OR Buffered Roads)
-            // Warning: Huge Union on roads is slow. We attempt it.
+            // V27: Batch Union for efficiency and stability
             if ((layer.type === 'eau' || useBuffer) && features.length > 0) {
                 try {
-                    // Performance Hack: Union in batches of 50 to avoid stack overflow? 
-                    // Or just try simplistic loop.
-                    if (features.length > 3000) {
+                    if (features.length > 4000) {
                         console.warn("Trop d'éléments pour Union (" + features.length + "). Skip Union.");
-                        // If we skip union, we just draw overlapping polys.
                     } else {
-                        let merged = features[0];
-                        for (let i = 1; i < features.length; i++) {
-                            merged = turf.union(merged, features[i]);
+                        // Batch size tuning
+                        const BATCH_SIZE = 50;
+                        let processingQueue = features;
+
+                        // Recursive batching until 1 feature remains
+                        while (processingQueue.length > 1) {
+                            let nextQueue = [];
+                            for (let i = 0; i < processingQueue.length; i += BATCH_SIZE) {
+                                const chunk = processingQueue.slice(i, i + BATCH_SIZE);
+                                if (chunk.length === 1) {
+                                    nextQueue.push(chunk[0]);
+                                } else {
+                                    let merged = chunk[0];
+                                    for (let j = 1; j < chunk.length; j++) {
+                                        try { merged = turf.union(merged, chunk[j]); } catch (e) { }
+                                    }
+                                    nextQueue.push(merged);
+                                }
+                            }
+                            processingQueue = nextQueue;
                         }
 
-                        // V22: Clean Result
-                        merged = turf.cleanCoords(merged);
-                        // Optional: Very slight simplification to remove artifacts, but be careful not to distort
-                        merged = turf.simplify(merged, { tolerance: 0.000001, highQuality: true });
-
-                        features = [merged];
+                        if (processingQueue.length > 0) {
+                            let final = turf.cleanCoords(processingQueue[0]);
+                            final = turf.rewind(final);
+                            features = [final];
+                        }
                     }
                 } catch (e) { console.warn("Union failed", e); }
             }
