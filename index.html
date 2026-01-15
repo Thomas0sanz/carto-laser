@@ -161,7 +161,7 @@
 <body>
 
     <div id="sidebar">
-        <h1>Carte Laser (OSM) V12 ⬠</h1>
+        <h1>Carte Laser (OSM) V15 ⬠</h1>
 
         <!-- Nom du Projet -->
         <div style="margin-bottom: 20px;">
@@ -377,21 +377,27 @@
                 if (!confirm("⚠️ ATTENTION : Zone très large.\nRisque de Timeout serveur.\nVoulez-vous continuer ?")) return;
             }
 
-            // 1. Define Clipping Mask (Turf Polygon)
+            // 1. Define Clipping Mask & Overpass Filter
             let maskPolygon = null;
+            let overpassFilter = "";
+
             if (selectedShapeLayer && selectedShapeLayer instanceof L.Polygon) {
-                // Convert Leaflet LatLngs to GeoJSON coords [[lon, lat], ...]
+                // Polygon Mask
                 const latlngs = selectedShapeLayer.getLatLngs()[0];
                 const coords = latlngs.map(pt => [pt.lng, pt.lat]);
-                // Close ring
                 if (coords.length > 0 && (coords[0][0] !== coords[coords.length - 1][0] || coords[0][1] !== coords[coords.length - 1][1])) {
                     coords.push(coords[0]);
                 }
                 maskPolygon = turf.polygon([coords]);
+
+                // Overpass Poly String: "lat1 lon1 lat2 lon2 ..."
+                const polyStr = latlngs.map(pt => `${pt.lat} ${pt.lng}`).join(" ");
+                overpassFilter = `(poly:"${polyStr}")`;
             } else {
                 // Fallback to Bounds Rect
-                const b = map.getBounds();
+                const b = selectedBounds || map.getBounds();
                 maskPolygon = turf.bboxPolygon([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
+                overpassFilter = `(${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()})`;
             }
 
             const layers = [
@@ -410,7 +416,7 @@
             }
 
             const status = document.getElementById("global-status");
-            status.textContent = "Démarrage...";
+            status.textContent = "Démarrage V15...";
 
             // Prepare SVG Dimensions
             const bounds = selectedBounds || map.getBounds();
@@ -418,9 +424,7 @@
             const maxLat = bounds.getNorth();
             const minLon = bounds.getWest();
             const maxLon = bounds.getEast();
-            const midLat = (minLat + maxLat) / 2;
-            const cosLat = Math.cos(midLat * Math.PI / 180);
-            const widthSvg = 1000 * ((maxLon - minLon) / (maxLat - minLat)) * cosLat;
+            const widthSvg = 1000 * ((maxLon - minLon) / (maxLat - minLat)) * Math.cos((minLat + maxLat) / 2 * Math.PI / 180);
             const heightSvg = 1000;
 
             function project(lat, lon) {
@@ -430,40 +434,59 @@
             }
 
             let svgGroups = [];
+            let errorCount = 0;
 
             // 2. Fetch & Process Each Layer
             for (const layer of activeLayers) {
-                status.textContent = "Traitement : " + layer.name + "...";
+                status.textContent = "Téléchargement : " + layer.name + "...";
 
-                // Build Query (Same as before)
-                const s = bounds.getSouth(), w = bounds.getWest(), n = bounds.getNorth(), e = bounds.getEast();
-                let queryFilter = "";
-                if (layer.type === 'routes_grands') queryFilter = `way["highway"~"motorway|trunk|primary"](${s},${w},${n},${e});`;
-                else if (layer.type === 'routes_secondaires') queryFilter = `way["highway"~"secondary|tertiary"](${s},${w},${n},${e});`;
-                else if (layer.type === 'routes_locales') queryFilter = `way["highway"~"residential|unclassified|living_street"](${s},${w},${n},${e});`;
-                else if (layer.type === 'eau') queryFilter = `way["natural"="water"](${s},${w},${n},${e}); way["waterway"](${s},${w},${n},${e});`;
-                else if (layer.type === 'bati') queryFilter = `way["building"](${s},${w},${n},${e});`;
+                let queryType = "";
+                if (layer.type === 'routes_grands') queryType = `way["highway"~"motorway|trunk|primary"]`;
+                else if (layer.type === 'routes_secondaires') queryType = `way["highway"~"secondary|tertiary"]`;
+                else if (layer.type === 'routes_locales') queryType = `way["highway"~"residential|unclassified|living_street"]`;
+                else if (layer.type === 'eau') queryType = `way["natural"="water"]; way["waterway"]`;
+                else if (layer.type === 'bati') queryType = `way["building"]`;
 
-                const query = `[out:json][timeout:300]; (${queryFilter}); out geom tags;`;
+                // Handle special case for double query (water)
+                let queryBody = "";
+                if (layer.type === 'eau') {
+                    // Split by semicolon and apply filter to each
+                    queryBody = `way["natural"="water"]${overpassFilter}; way["waterway"]${overpassFilter};`;
+                } else {
+                    queryBody = `${queryType}${overpassFilter};`;
+                }
+
+                const query = `[out:json][timeout:300]; (${queryBody}); out geom tags;`;
 
                 try {
                     const resp = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
-                    if (!resp.ok) throw new Error("Err");
+                    if (!resp.ok) throw new Error("Erreur HTTP " + resp.status);
                     const data = await resp.json();
 
-                    // Generate Geometry Content
+                    status.textContent = `${layer.name}: ${data.elements ? data.elements.length : 0} objets...`;
+
+                    // Generate Geometry
                     const groupContent = processLayerGeometry(data, layer, maskPolygon, project, metersPerPx(maxLat, minLat));
                     if (groupContent) {
                         svgGroups.push(`<g id="${layer.name}" stroke="${layer.color}" fill="${layer.fill ? layer.color : 'none'}" stroke-width="${layer.width || 1}">\n${groupContent}\n</g>`);
                     }
 
-                } catch (e) { console.error(e); }
+                } catch (e) {
+                    console.error(e);
+                    errorCount++;
+                    status.textContent = "❌ Echec sur " + layer.name + " (Timeout ?)";
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+
+                await new Promise(r => setTimeout(r, 500));
             }
+
+            if (errorCount > 0) alert("Attention : " + errorCount + " calque(s) ont échoué (Trop de données / Timeout Serveur). Réessayez une zone plus petite.");
 
             // 3. Assemble Final SVG
             const safeProjName = (document.getElementById('projectName').value || "Carte_Laser").replace(/[^a-z0-9]/gi, '_');
             const dateStr = new Date().toISOString().split('T')[0];
-            const filename = `${safeProjName}_ALL_${dateStr}.svg`;
+            const filename = `${safeProjName}_V15_${dateStr}.svg`;
 
             const finalSVG = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 ${widthSvg.toFixed(2)} ${heightSvg}">
@@ -471,7 +494,7 @@
 </svg>`;
 
             downloadStringAsFile(finalSVG, filename);
-            status.textContent = "✅ Export Terminé !";
+            status.textContent = errorCount === 0 ? "✅ Export V15 Terminé !" : "⚠️ Terminé avec erreurs.";
         }
 
         // Helper: Meters/Px
@@ -532,36 +555,40 @@
             features.forEach(f => {
                 if (!f) return;
 
-                if (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon') {
-                    // Polygon Clipping
-                    const clipped = turf.intersect(f, maskPolygon);
-                    if (clipped) drawFeature(clipped, parts, projectFn);
-                }
-                else if (f.geometry.type === 'LineString') {
-                    // Line Clipping (Split & Filter)
-                    // Note: turf.lineSplit only splits at intersection. We need split + keep inside.
-                    // If line is fully inside => keep.
-                    if (turf.booleanWithin(f, maskPolygon)) {
-                        drawFeature(f, parts, projectFn);
-                    } else {
-                        // Tricky part: Line might cross multiple times.
-                        // Use bboxClip first for speed? No, bbox is not Pentagram.
-                        // Split logic:
-                        const split = turf.lineSplit(f, maskPolygon);
-                        // If no split but not within, it's outside.
-                        // Actually lineSplit returns FeatureCollection of segments.
-
-                        let segments = [];
-                        if (split.features.length > 0) segments = split.features;
-                        else segments = [f]; // Check the whole line if no split (could be fully inside or outside?)
-
-                        segments.forEach(seg => {
-                            const mid = turf.midpoint(seg);
-                            if (turf.booleanPointInPolygon(mid, maskPolygon)) {
-                                drawFeature(seg, parts, projectFn);
-                            }
-                        });
+                try {
+                    if (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon') {
+                        // Polygon Clipping
+                        const clipped = turf.intersect(f, maskPolygon);
+                        if (clipped) drawFeature(clipped, parts, projectFn);
                     }
+                    else if (f.geometry.type === 'LineString') {
+                        // Line Clipping
+                        if (turf.booleanWithin(f, maskPolygon)) {
+                            drawFeature(f, parts, projectFn);
+                        } else {
+                            // Split logic with Fallback
+                            const split = turf.lineSplit(f, maskPolygon);
+                            let segments = [];
+                            if (split.features.length > 0) segments = split.features;
+                            else {
+                                // Split failed? Or Line intersects but split returns nothing?
+                                // Fallback: If it intersects, just keep the whole line for now (Safer than deleting)
+                                // But user wants clipping.
+                                // If booleanIntersects(f, maskPolygon) is true, we should try to keep it.
+                                if (turf.booleanIntersects(f, maskPolygon)) segments = [f];
+                            }
+
+                            segments.forEach(seg => {
+                                const mid = turf.midpoint(seg);
+                                if (turf.booleanPointInPolygon(mid, maskPolygon)) {
+                                    drawFeature(seg, parts, projectFn);
+                                }
+                            });
+                        }
+                    }
+                } catch (e) {
+                    // On geometric error, fallback to keeping the original if it touches the box
+                    // console.warn("Geo error", e); 
                 }
             });
 
