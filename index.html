@@ -161,9 +161,9 @@
 <body>
 
     <div id="sidebar">
-        <h1>Carte Laser (OSM) V24 ⬠</h1>
-        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V24 (Fix Découpe
-            Bâtiments)</div>
+        <h1>Carte Laser (OSM) V25 ⬠</h1>
+        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V25 (Épaisseurs
+            Variables)</div>
 
         <!-- Nom du Projet -->
         <div style="margin-bottom: 20px;">
@@ -452,7 +452,7 @@
             }
 
             const status = document.getElementById("global-status");
-            status.textContent = "Démarrage V23...";
+            status.textContent = "Démarrage V25...";
 
             // Prepare SVG Dimensions
             const bounds = selectedBounds || map.getBounds();
@@ -471,17 +471,10 @@
             const heightSvgPx = 1000 * aspectRatio;
             const targetHeightCm = targetWidthCm * aspectRatio;
 
-            // Calc Buffer for Roads (Physical -> Geo Meters)
-            // Real Width in Meters = widthGeo * 1000
-            // Scale (Meters per CM) = (widthGeo * 1000) / targetWidthCm
-            // Desired Buffer Radius (Meters) = (roadThickMm / 10 / 2) * (Meters per CM) 
-            // Wait. Convert mm to cm: roadThickMm/10. Divide by 2 for radius.
-            // (0.4 cm / 2) = 0.2 cm radius.
-            // 0.2 cm * Meters_Per_CM = Meters.
+            // Base Scale Calc
             const metersPerCm = (widthGeo * 1000) / targetWidthCm;
-            const roadBufferMeters = (roadThickMm / 10 / 2) * metersPerCm;
 
-            console.log(`V21: Width=${targetWidthCm}cm, RoadThick=${roadThickMm}mm. Scale: 1cm=${metersPerCm.toFixed(1)}m. Buffer=${roadBufferMeters.toFixed(1)}m`);
+            console.log(`V21: Width=${targetWidthCm}cm, RoadThick=${roadThickMm}mm. Scale: 1cm=${metersPerCm.toFixed(1)}m.`);
 
             function project(lat, lon) {
                 const px = ((lon - minLon) / (maxLon - minLon)) * widthSvgPx;
@@ -510,7 +503,7 @@
                 let queryType = "";
                 if (layer.type === 'routes_grands') queryType = `way["highway"~"motorway|trunk|primary"]`;
                 else if (layer.type === 'routes_secondaires') queryType = `way["highway"~"secondary|tertiary"]`;
-                else if (layer.type === 'routes_locales') queryType = `way["highway"~"residential|unclassified|living_street"]`;
+                else if (layer.type === 'routes_locales') queryType = `way["highway"~"residential|unclassified|living_street|pedestrian"]`;
                 else if (layer.type === 'eau') queryType = `way["natural"="water"]; way["waterway"]`;
                 else if (layer.type === 'bati') queryType = `way["building"]`;
 
@@ -530,14 +523,20 @@
 
                     status.textContent = `${layer.name}: ${data.elements ? data.elements.length : 0} objets...`;
 
-                    // Determine if road buffering applies
+                    // Determine radius based on layer hierarchy (V25)
                     let useBuffer = false;
                     let radius = 0;
+
                     if (layer.type.startsWith('routes')) {
                         useBuffer = true;
-                        radius = roadBufferMeters;
+                        // Base Thickness
+                        let multiplier = 1.0;
+                        if (layer.type === 'routes_secondaires') multiplier = 0.7; // 70%
+                        if (layer.type === 'routes_locales') multiplier = 0.4;    // 40%
+
+                        // (Mm / 10 / 2) * MetersPerCm * Multiplier
+                        radius = ((roadThickMm / 10 / 2) * metersPerCm) * multiplier;
                     }
-                    // Reuse water buffer logic separately if needed, but water code handles itself.
 
                     // Generate Geometry
                     const groupContent = processLayerGeometry(data, layer, maskPolygon, project, metersPerPx(maxLat, minLat), shouldMerge, useBuffer, radius);
