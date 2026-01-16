@@ -22,111 +22,162 @@
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
         :root {
-            --primary: #8b5cf6;
-            --surface: #ffffff;
-            --background: #f3f4f6;
-            --text: #1f2937;
+            --primary: #c026d3;
+            /* fuchsia-600 */
+            --primary-hover: #a21caf;
+            /* fuchsia-700 */
+            --primary-light: #f5d0fe;
+            /* fuchsia-200 */
+            --text: #0f172a;
+            /* slate-900 */
+            --text-muted: #64748b;
+            /* slate-500 */
+            --surface: rgba(255, 255, 255, 0.85);
+            --surface-glass: rgba(255, 255, 255, 0.7);
+            --border: rgba(255, 255, 255, 0.3);
+            --shadow: rgba(0, 0, 0, 0.1);
+            --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             height: 100vh;
             display: flex;
-            background-color: var(--background);
+            background: var(--background);
             color: var(--text);
             overflow: hidden;
         }
 
+        /* Glassmorphism Sidebar */
         #sidebar {
-            width: 380px;
-            background-color: var(--surface);
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            background: var(--surface-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border);
+            box-shadow: 4px 0 30px var(--shadow);
             display: flex;
             flex-direction: column;
             z-index: 1000;
-            padding: 20px;
-            box-sizing: border-box;
+            padding: 24px;
             overflow-y: auto;
         }
 
+        #sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #sidebar::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 3px;
+        }
+
         h1 {
-            font-size: 1.25rem;
-            margin-top: 0;
-            color: var(--primary);
+            font-size: 1.5rem;
+            margin: 0 0 4px 0;
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             font-weight: 700;
         }
 
+        h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0 0 12px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         .control-group {
-            margin-bottom: 25px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            border: 1px solid var(--border);
         }
 
         .info {
-            font-size: 0.85rem;
-            color: #6b7280;
-            margin-top: 5px;
-            line-height: 1.4;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            line-height: 1.5;
         }
 
+        /* Buttons */
         button {
-            background-color: var(--primary);
+            background: linear-gradient(135deg, var(--primary) 0%, #9333ea 100%);
             color: white;
             border: none;
-            padding: 10px 15px;
-            border-radius: 6px;
+            padding: 12px 20px;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 600;
             width: 100%;
-            transition: background-color 0.2s;
+            transition: all 0.3s ease;
             margin-bottom: 8px;
             text-align: center;
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 8px;
+            box-shadow: 0 4px 15px rgba(192, 38, 211, 0.3);
         }
 
         button:hover {
-            background-color: #7c3aed;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(192, 38, 211, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
         }
 
         button.secondary {
-            background-color: #e5e7eb;
-            color: #374151;
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--text);
+            box-shadow: 0 2px 10px var(--shadow);
         }
 
         button.secondary:hover {
-            background-color: #d1d5db;
+            background: rgba(255, 255, 255, 1);
         }
 
-        /* Checkbox List Styles */
+        /* Layer List */
         .layer-list {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            background: #f9fafb;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
+            gap: 8px;
         }
 
         .layer-item {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             font-size: 0.9rem;
             cursor: pointer;
-            padding: 5px;
-            border-radius: 4px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
         }
 
         .layer-item:hover {
-            background-color: #f3f4f6;
+            background: rgba(255, 255, 255, 0.9);
+            border-color: var(--primary-light);
         }
 
         .layer-item input[type="checkbox"] {
@@ -137,14 +188,45 @@
         }
 
         .badge {
-            font-size: 0.75rem;
-            padding: 2px 6px;
-            border-radius: 10px;
-            background: #e5e7eb;
-            color: #4b5563;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 20px;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 600;
             margin-left: auto;
         }
 
+        /* Inputs */
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--text);
+            transition: all 0.2s ease;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(192, 38, 211, 0.1);
+        }
+
+        label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        /* Map */
         #map {
             flex-grow: 1;
             height: 100%;
@@ -152,8 +234,113 @@
             z-index: 1;
         }
 
+        /* Search Bar Floating */
+        .search-container {
+            position: absolute;
+            top: 20px;
+            left: 420px;
+            z-index: 1000;
+            width: 350px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            background: var(--surface-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 4px 20px var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            box-shadow: 0 4px 25px rgba(192, 38, 211, 0.2);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border-radius: 12px;
+            margin-top: 8px;
+            box-shadow: 0 4px 20px var(--shadow);
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .search-results.active {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            transition: background 0.2s;
+        }
+
+        .search-result-item:hover {
+            background: var(--primary-light);
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Status */
+        #global-status {
+            padding: 12px 16px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary-light) 0%, #e9d5ff 100%);
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        #global-status.loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        /* Geocoder Override */
         .leaflet-control-geocoder {
-            z-index: 2000;
+            display: none !important;
+        }
+
+        /* Version Badge */
+        .version-badge {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            display: inline-block;
         }
     </style>
 </head>
@@ -161,20 +348,19 @@
 <body>
 
     <div id="sidebar">
-        <h1>Carte Laser (OSM) V31 ⬠</h1>
-        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V31 (Routes
-            Combinées)</div>
+        <h1>LaserMap Studio ⬠</h1>
+        <div class="version-badge">Version 32 • Pro</div>
 
         <!-- Nom du Projet -->
-        <div style="margin-bottom: 20px;">
-            <label style="font-size: 0.9rem; font-weight: 600;">Nom du Projet</label>
-            <input type="text" id="projectName" placeholder="Ex: Paris 12e..."
-                style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        <div class="control-group">
+            <h3>📁 Projet</h3>
+            <label>Nom du Projet</label>
+            <input type="text" id="projectName" placeholder="Ex: Paris 12e...">
         </div>
 
         <div class="control-group">
-            <h3>1. Localisation</h3>
-            <div class="info">Utilisez la loupe sur la carte pour chercher une ville.</div>
+            <h3>📍 Zone</h3>
+            <div class="info">Dessinez une forme sur la carte ou utilisez la barre de recherche.</div>
         </div>
 
         <div class="control-group">
@@ -310,6 +496,12 @@
 
     </div>
 
+    <!-- Floating Search Bar -->
+    <div class="search-container">
+        <input type="text" class="search-input" id="searchInput" placeholder="🔍 Rechercher une adresse...">
+        <div class="search-results" id="searchResults"></div>
+    </div>
+
     <div id="map"></div>
 
     <script>
@@ -331,14 +523,54 @@
             layers[name].addTo(map);
         }
 
-        // Search
-        L.Control.geocoder({ defaultMarkGeocode: false })
-            .on('markgeocode', function (e) {
-                const bbox = e.geocode.bbox;
-                const poly = L.polygon([bbox.getSouthEast(), bbox.getNorthEast(), bbox.getNorthWest(), bbox.getSouthWest()]);
-                map.fitBounds(poly.getBounds());
-            })
-            .addTo(map);
+        // V32: Custom Address Search (Nominatim)
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        let searchTimeout = null;
+
+        searchInput.addEventListener('input', function () {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+
+            if (query.length < 3) {
+                searchResults.classList.remove('active');
+                return;
+            }
+
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const resp = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=fr,be,ch,lu`);
+                    const results = await resp.json();
+
+                    searchResults.innerHTML = '';
+                    if (results.length > 0) {
+                        results.forEach(result => {
+                            const item = document.createElement('div');
+                            item.className = 'search-result-item';
+                            item.textContent = result.display_name;
+                            item.addEventListener('click', () => {
+                                map.setView([parseFloat(result.lat), parseFloat(result.lon)], 15);
+                                searchResults.classList.remove('active');
+                                searchInput.value = result.display_name.split(',')[0];
+                            });
+                            searchResults.appendChild(item);
+                        });
+                        searchResults.classList.add('active');
+                    } else {
+                        searchResults.classList.remove('active');
+                    }
+                } catch (e) {
+                    console.error('Search error:', e);
+                }
+            }, 300);
+        });
+
+        // Close results on click outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) {
+                searchResults.classList.remove('active');
+            }
+        });
 
         // --- DRAW FEATURE ---
         const drawnItems = new L.FeatureGroup();
@@ -469,7 +701,7 @@
             }
 
             const status = document.getElementById("global-status");
-            status.textContent = "Démarrage V31...";
+            status.textContent = "Démarrage V32...";
 
             // Prepare SVG Dimensions
             const bounds = selectedBounds || map.getBounds();
@@ -514,12 +746,12 @@
             const safeProjName = (document.getElementById('projectName').value || "Carte_Laser").replace(/[^a-z0-9]/gi, '_');
             const dateStr = new Date().toISOString().split('T')[0];
 
-            // V31: Combine ALL road layers into one if in Surface mode
+            // V32: Combine ALL road layers into one if in Surface mode
             const roadLayers = activeLayers.filter(l => l.type.startsWith('routes'));
             const nonRoadLayers = activeLayers.filter(l => !l.type.startsWith('routes'));
 
             if (roadLayers.length > 0 && roadMode === 'surface') {
-                status.textContent = "V31: Fusion de toutes les routes...";
+                status.textContent = "V32: Fusion de toutes les routes...";
 
                 // Build combined query for all selected road types
                 let roadQueryParts = [];
@@ -569,12 +801,12 @@
   <!-- Cadre d'Alignement -->
   <path d="${framePathD}" fill="none" stroke="red" stroke-width="0.5" vector-effect="non-scaling-stroke" id="frame_alignment" />
 </svg>`;
-                        const filename = `${safeProjName}_Routes_Combinées_V31_${dateStr}.svg`;
+                        const filename = `${safeProjName}_Routes_Combinées_V32_${dateStr}.svg`;
                         downloadStringAsFile(layerSVG, filename);
-                        console.log('V31: Combined roads exported successfully.');
+                        console.log('V32: Combined roads exported successfully.');
                     }
                 } catch (e) {
-                    console.error("V31 Combined roads failed", e);
+                    console.error("V32 Combined roads failed", e);
                     errorCount++;
                 }
             }
@@ -669,7 +901,7 @@
   <!-- Cadre d'Alignement -->
   <path d="${framePathD}" fill="none" stroke="red" stroke-width="0.5" vector-effect="non-scaling-stroke" id="frame_alignment" />
 </svg>`;
-                        const filename = `${safeProjName}_${layer.name}_V31_${dateStr}.svg`;
+                        const filename = `${safeProjName}_${layer.name}_V32_${dateStr}.svg`;
                         downloadStringAsFile(layerSVG, filename);
                     } else {
                         console.warn("Aucune géométrie pour " + layer.name);
@@ -686,7 +918,7 @@
             }
 
             if (errorCount > 0) alert("Attention : " + errorCount + " calque(s) ont échoué.");
-            status.textContent = errorCount === 0 ? "✅ Export V31 Terminé !" : "⚠️ Terminé avec erreurs.";
+            status.textContent = errorCount === 0 ? "✅ Export V32 Terminé !" : "⚠️ Terminé avec erreurs.";
         }
 
         function metersPerPx(maxLat, minLat) {
