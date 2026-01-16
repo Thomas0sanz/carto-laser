@@ -1,18 +1,14 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Générateur Carte OSM (Vectoriel)</title>
+    <title>LaserMap Studio V30</title>
 
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <!-- Plugin Recherche (GeoSearch) -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
     <!-- Leaflet Draw CSS & JS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
@@ -25,25 +21,18 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
         :root {
-            --primary: #a855f7;
-            --primary-hover: #9333ea;
-            --primary-light: #f3e8ff;
-            --primary-dark: #7c3aed;
-            --text: #1e293b;
-            --text-muted: #64748b;
-            --text-light: #94a3b8;
-            --surface: rgba(255, 255, 255, 0.95);
-            --surface-glass: rgba(255, 255, 255, 0.75);
-            --surface-hover: rgba(255, 255, 255, 0.9);
-            --border: rgba(255, 255, 255, 0.4);
-            --border-strong: rgba(0, 0, 0, 0.08);
-            --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
-            --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.08);
-            --background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --primary-light: #ddd6fe;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --bg-glass: rgba(255, 255, 255, 0.85);
+            --bg-glass-strong: rgba(255, 255, 255, 0.95);
+            --border-glass: rgba(255, 255, 255, 0.6);
+            --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --radius-md: 12px;
             --radius-lg: 16px;
-            --radius-xl: 20px;
-            --radius-2xl: 24px;
-            --radius-3xl: 32px;
+            --radius-xl: 24px;
         }
 
         * {
@@ -53,200 +42,238 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', sans-serif;
             height: 100vh;
             display: flex;
-            background: var(--background);
-            color: var(--text);
+            background: linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 100%);
+            color: var(--text-main);
             overflow: hidden;
         }
 
         /* === SIDEBAR === */
         #sidebar {
-            width: 420px;
-            background: var(--surface-glass);
-            backdrop-filter: blur(40px);
-            -webkit-backdrop-filter: blur(40px);
-            border-right: 1px solid var(--border);
-            box-shadow: var(--shadow);
+            width: 440px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-right: 1px solid var(--border-glass);
             display: flex;
             flex-direction: column;
             z-index: 1000;
-            padding: 0;
-            overflow: hidden;
+            box-shadow: 5px 0 25px rgba(0, 0, 0, 0.05);
         }
 
-        /* Header */
         .sidebar-header {
-            padding: 24px 24px 20px;
-            border-bottom: 1px solid var(--border-strong);
-            background: rgba(255, 255, 255, 0.5);
+            padding: 24px;
+            background: var(--bg-glass-strong);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .logo {
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 4px;
         }
 
         .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            border-radius: var(--radius-lg);
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.25rem;
-            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+            color: white;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3);
         }
 
         h1 {
-            font-size: 1.35rem;
+            font-size: 1.2rem;
             font-weight: 800;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #111827;
+            letter-spacing: -0.02em;
         }
 
         .version-tag {
             font-size: 0.65rem;
-            font-weight: 600;
             color: var(--primary);
             background: var(--primary-light);
-            padding: 3px 8px;
-            border-radius: 20px;
+            padding: 2px 8px;
+            border-radius: 12px;
             margin-left: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* Language Toggle */
+        .lang-selector {
+            display: flex;
+            background: rgba(0, 0, 0, 0.05);
+            padding: 3px;
+            border-radius: 8px;
+        }
+
+        .lang-btn {
+            border: none;
+            background: transparent;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .lang-btn.active {
+            background: white;
+            color: var(--text-main);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         /* === TABS === */
         .tabs {
             display: flex;
-            gap: 4px;
-            padding: 12px 24px;
-            background: rgba(255, 255, 255, 0.3);
-            border-bottom: 1px solid var(--border-strong);
+            padding: 16px 24px 0;
+            gap: 6px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .tab {
             flex: 1;
-            padding: 10px 16px;
+            padding: 12px 0;
             border: none;
             background: transparent;
-            color: var(--text-muted);
-            font-size: 0.8rem;
+            font-family: inherit;
+            font-size: 0.9rem;
             font-weight: 600;
+            color: var(--text-muted);
             cursor: pointer;
-            border-radius: var(--radius-lg);
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            box-shadow: none;
-            margin: 0;
-            width: auto;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
         }
 
         .tab:hover {
-            background: rgba(255, 255, 255, 0.6);
-            color: var(--text);
-            transform: none;
-            box-shadow: none;
+            color: var(--primary);
         }
 
         .tab.active {
-            background: white;
             color: var(--primary);
-            box-shadow: var(--shadow-sm);
+            border-bottom-color: var(--primary);
         }
 
-        /* === TAB CONTENT === */
+        /* === CONTENT AREA === */
         .tab-content {
             display: none;
             flex: 1;
+            padding: 24px;
             overflow-y: auto;
-            padding: 20px 24px;
         }
 
         .tab-content.active {
-            display: block;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
+        /* Scrollbar */
         .tab-content::-webkit-scrollbar {
-            width: 5px;
+            width: 6px;
         }
 
         .tab-content::-webkit-scrollbar-thumb {
-            background: var(--primary-light);
-            border-radius: 5px;
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
         }
 
         /* === CARDS === */
         .card {
-            background: var(--surface);
-            border-radius: var(--radius-2xl);
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: var(--radius-xl);
             padding: 20px;
-            margin-bottom: 16px;
-            border: 1px solid var(--border-strong);
-            box-shadow: var(--shadow-sm);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            transition: transform 0.2s;
         }
+
+        .card:hover {}
 
         .card-title {
             font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.8px;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 700;
             margin-bottom: 16px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .card-title::before {
-            content: '';
-            width: 4px;
-            height: 16px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            border-radius: 2px;
+        /* === INPUTS === */
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #374151;
         }
 
-        /* === SHAPE BUTTONS === */
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: var(--radius-md);
+            background: white;
+            font-size: 0.95rem;
+            color: #111827;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        /* === SHAPE SELECTOR === */
         .shape-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
         }
 
         .shape-btn {
-            padding: 16px 12px;
-            border: 2px solid var(--border-strong);
             background: white;
-            border-radius: var(--radius-xl);
+            border: 2px solid transparent;
+            border-radius: var(--radius-lg);
+            padding: 16px;
             cursor: pointer;
-            transition: all 0.2s ease;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
-            box-shadow: none;
-            margin: 0;
-            width: auto;
+            gap: 10px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
         }
 
         .shape-btn:hover {
-            border-color: var(--primary-light);
-            background: var(--primary-light);
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
         .shape-btn.active {
             border-color: var(--primary);
-            background: var(--primary-light);
-            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);
+            background: #f5f3ff;
+            color: var(--primary);
         }
 
         .shape-btn .icon {
@@ -254,69 +281,61 @@
         }
 
         .shape-btn .label {
-            font-size: 0.7rem;
+            font-size: 0.8rem;
             font-weight: 600;
-            color: var(--text);
         }
 
-        /* === PRECISION CONTROLS === */
-        .precision-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 16px;
-        }
-
+        /* === SLIDERS === */
         .precision-control {
-            background: rgba(248, 250, 252, 0.8);
+            background: white;
+            padding: 16px;
             border-radius: var(--radius-lg);
-            padding: 14px;
-            border: 1px solid var(--border-strong);
+            margin-top: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
         }
 
-        .precision-label {
+        .precision-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .precision-label span {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
-
-        .precision-value {
+            margin-bottom: 12px;
             font-size: 0.85rem;
-            font-weight: 700;
+            font-weight: 600;
+        }
+
+        .precision-val {
             color: var(--primary);
-            background: var(--primary-light);
+            background: #f3f4f6;
             padding: 2px 8px;
-            border-radius: 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
         }
 
-        input[type="range"] {
+        input[type=range] {
+            -webkit-appearance: none;
             width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: var(--border-strong);
-            outline: none;
-            -webkit-appearance: none;
-            appearance: none;
+            background: transparent;
         }
 
-        input[type="range"]::-webkit-slider-thumb {
+        input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
+            height: 20px;
+            width: 20px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: var(--primary);
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(168, 85, 247, 0.4);
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            margin-top: -8px;
         }
 
-        /* === LAYERS === */
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+        }
+
+        /* === LAYER LIST === */
         .layer-list {
             display: flex;
             flex-direction: column;
@@ -326,139 +345,162 @@
         .layer-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 14px 16px;
+            gap: 16px;
+            padding: 12px 16px;
             background: white;
-            border-radius: var(--radius-xl);
-            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-lg);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.2s;
+            border: 1px solid transparent;
         }
 
         .layer-item:hover {
-            border-color: var(--primary-light);
-            transform: translateX(4px);
+            background: #f9fafb;
+            border-color: #e5e7eb;
         }
 
+        /* Custom Checkbox */
         .layer-item input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
             width: 20px;
             height: 20px;
-            accent-color: var(--primary);
+            border: 2px solid #d1d5db;
+            border-radius: 6px;
             cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .layer-item input[type="checkbox"]:checked {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .layer-item input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            left: 3px;
+            top: -1px;
+            font-weight: 800;
         }
 
         .layer-info {
             flex: 1;
         }
 
-        .layer-name {
-            font-size: 0.9rem;
+        .layer-title {
             font-weight: 600;
-            color: var(--text);
+            font-size: 0.9rem;
+            color: #111827;
         }
 
         .layer-desc {
             font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        .layer-badge {
-            font-size: 0.65rem;
-            padding: 4px 10px;
-            border-radius: 20px;
-            background: var(--primary-light);
-            color: var(--primary);
-            font-weight: 700;
-        }
-
-        /* === INPUTS === */
-        .input-group {
-            margin-bottom: 14px;
-        }
-
-        .input-group label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-            display: block;
-        }
-
-        input[type="text"],
-        input[type="number"],
-        select {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1px solid var(--border-strong);
-            border-radius: var(--radius-lg);
-            font-size: 0.9rem;
-            background: white;
-            color: var(--text);
-            transition: all 0.2s ease;
-        }
-
-        input:focus,
-        select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.1);
+            color: #6b7280;
         }
 
         /* === BUTTONS === */
+        .footer {
+            padding: 24px;
+            background: var(--bg-glass-strong);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
         .btn-primary {
             width: 100%;
-            padding: 14px 24px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
             border: none;
-            border-radius: var(--radius-xl);
-            font-size: 0.9rem;
+            border-radius: var(--radius-lg);
+            color: white;
+            font-size: 1rem;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 24px rgba(168, 85, 247, 0.35);
-            margin: 0;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
         }
 
         .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 32px rgba(168, 85, 247, 0.45);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
         }
 
         .btn-secondary {
-            width: 100%;
-            padding: 12px 20px;
+            flex: 1;
+            padding: 12px;
             background: white;
-            color: var(--text);
-            border: 1px solid var(--border-strong);
-            border-radius: var(--radius-lg);
-            font-size: 0.85rem;
+            border: 1px solid #e5e7eb;
+            border-radius: var(--radius-md);
             font-weight: 600;
+            color: #374151;
             cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: none;
-            margin: 0;
+            transition: all 0.2s;
         }
 
         .btn-secondary:hover {
-            background: var(--primary-light);
-            border-color: var(--primary-light);
-            transform: none;
+            background: #f9fafb;
+            border-color: #d1d5db;
         }
 
-        /* === STATUS === */
-        .status-bar {
-            padding: 14px 20px;
-            background: linear-gradient(135deg, var(--primary-light) 0%, #e9d5ff 100%);
-            border-radius: var(--radius-xl);
-            margin-top: 16px;
-            text-align: center;
+        /* === FLOATING SEARCH === */
+        .search-wrapper {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+            margin-left: 220px;
+            /* Offset for sidebar */
         }
 
-        .status-bar .status-text {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--primary);
+        .search-bar {
+            display: flex;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(12px);
+            padding: 8px 8px 8px 24px;
+            border-radius: 100px;
+            align-items: center;
+            width: 420px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: all 0.3s;
+        }
+
+        .search-bar:focus-within {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            background: white;
+        }
+
+        .search-input {
+            border: none;
+            flex: 1;
+            font-size: 1rem;
+            background: transparent;
+            outline: none;
+            color: #1f2937;
+        }
+
+        .search-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .search-btn:hover {
+            background: var(--primary-hover);
+            transform: scale(1.05);
         }
 
         /* === MAP === */
@@ -466,226 +508,39 @@
             flex: 1;
             height: 100%;
             z-index: 1;
-            position: relative;
         }
 
-        /* === FLOATING SEARCH === */
-        .search-container {
-            position: absolute;
-            top: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            width: 400px;
-            margin-left: 210px;
-            animation: levitate 3s ease-in-out infinite;
-        }
-
-        @keyframes levitate {
-
-            0%,
-            100% {
-                transform: translateX(-50%) translateY(0);
-            }
-
-            50% {
-                transform: translateX(-50%) translateY(-6px);
-            }
-        }
-
-        .search-box {
-            display: flex;
-            align-items: center;
-            background: var(--surface);
-            border-radius: var(--radius-3xl);
-            padding: 6px 8px 6px 20px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-        }
-
-        .search-input {
-            flex: 1;
-            border: none;
-            background: transparent;
-            padding: 12px 0;
-            font-size: 0.95rem;
-            color: var(--text);
-            outline: none;
-        }
-
-        .search-input::placeholder {
-            color: var(--text-light);
-        }
-
-        .search-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            border: none;
-            color: white;
-            font-size: 1.1rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
-            padding: 0;
-            margin: 0;
-        }
-
-        .search-btn:hover {
-            transform: scale(1.05);
-        }
-
-        .search-results {
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            right: 0;
-            background: var(--surface);
-            border-radius: var(--radius-2xl);
-            box-shadow: var(--shadow);
-            max-height: 280px;
-            overflow-y: auto;
-            display: none;
-            border: 1px solid var(--border);
-        }
-
-        .search-results.active {
-            display: block;
-        }
-
-        .search-result-item {
-            padding: 14px 20px;
-            cursor: pointer;
-            border-bottom: 1px solid var(--border-strong);
-            transition: all 0.15s ease;
-            font-size: 0.9rem;
-        }
-
-        .search-result-item:hover {
-            background: var(--primary-light);
-        }
-
-        .search-result-item:last-child {
-            border-bottom: none;
-        }
-
-        /* === PREVIEW OVERLAY === */
-        .preview-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-            z-index: 900;
-            display: none;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .preview-overlay.active {
-            display: flex;
-        }
-
-        .preview-card {
-            background: white;
-            border-radius: var(--radius-3xl);
-            padding: 32px;
-            max-width: 400px;
-            text-align: center;
-            box-shadow: var(--shadow);
-        }
-
-        .preview-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text);
-            margin-bottom: 16px;
-        }
-
-        .preview-dimensions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .preview-dim {
-            background: var(--primary-light);
-            border-radius: var(--radius-lg);
-            padding: 16px;
-        }
-
-        .preview-dim .value {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--primary);
-        }
-
-        .preview-dim .label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-
-        /* === ZONE STATUS === */
-        .zone-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
-            background: rgba(248, 250, 252, 0.8);
-            border-radius: var(--radius-lg);
-            margin-top: 16px;
-        }
-
-        .zone-status .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--text-light);
-        }
-
-        .zone-status.active .dot {
-            background: #22c55e;
-            animation: pulse-dot 1.5s infinite;
-        }
-
-        @keyframes pulse-dot {
-
-            0%,
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-
-            50% {
-                opacity: 0.6;
-                transform: scale(1.2);
-            }
-        }
-
-        .zone-status .text {
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: var(--text-muted);
-        }
-
-        /* Hide old geocoder */
         .leaflet-control-geocoder {
             display: none !important;
         }
 
-        /* Machine settings grid */
-        .settings-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+        /* Status */
+        .status-pill {
+            margin-top: 16px;
+            background: #f3f4f6;
+            border-radius: 100px;
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        .zone-status {
+            margin-top: 16px;
+            background: rgba(16, 185, 129, 0.1);
+            color: #059669;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            display: none;
+        }
+
+        .zone-status.active {
+            display: block;
         }
     </style>
 </head>
@@ -693,242 +548,364 @@
 <body>
 
     <div id="sidebar">
-        <!-- Header -->
         <div class="sidebar-header">
             <div class="logo">
                 <div class="logo-icon">⬠</div>
                 <div>
-                    <h1>LaserMap Studio<span class="version-tag">V33</span></h1>
+                    <h1>LaserMap Studio <span class="version-tag">V30</span></h1>
                 </div>
+            </div>
+            <div class="lang-selector">
+                <button class="lang-btn active" onclick="setLang('en')">EN</button>
+                <button class="lang-btn" onclick="setLang('fr')">FR</button>
+                <button class="lang-btn" onclick="setLang('bg')">BG</button>
             </div>
         </div>
 
-        <!-- Tabs -->
         <div class="tabs">
             <button class="tab active" onclick="switchTab('zone')">
-                📍 Zone
+                <span data-i18n="tab_zone">Zone</span>
             </button>
             <button class="tab" onclick="switchTab('layers')">
-                📚 Couches
+                <span data-i18n="tab_layers">Layers</span>
             </button>
             <button class="tab" onclick="switchTab('machine')">
-                ⚙️ Machine
+                <span data-i18n="tab_machine">Machine</span>
             </button>
         </div>
 
-        <!-- Tab: Zone -->
+        <!-- ZONE TAB -->
         <div id="tab-zone" class="tab-content active">
             <div class="card">
-                <div class="card-title">Forme de découpe</div>
+                <div class="card-title">
+                    <span data-i18n="cutting_shape">Cutting Shape</span>
+                </div>
                 <div class="shape-grid">
-                    <button class="shape-btn active" onclick="selectShape('pentagon', this)">
-                        <span class="icon">⬠</span>
-                        <span class="label">Pentagone</span>
-                    </button>
-                    <button class="shape-btn" onclick="selectShape('rectangle', this)">
-                        <span class="icon">⬛</span>
-                        <span class="label">Rectangle</span>
-                    </button>
-                    <button class="shape-btn" onclick="selectShape('circle', this)">
-                        <span class="icon">⬤</span>
-                        <span class="label">Cercle</span>
-                    </button>
-                </div>
-
-                <div class="precision-row">
-                    <div class="precision-control">
-                        <div class="precision-label">
-                            <span>Rayon</span>
-                            <span class="precision-value" id="radiusVal">2.0 km</span>
-                        </div>
-                        <input type="range" id="radiusInput" min="500" max="15000" step="100" value="2000"
-                            oninput="updatePentagonTransform()">
+                    <div class="shape-btn active" onclick="selectShape('pentagon', this)">
+                        <div class="icon">⬠</div>
+                        <div class="label" data-i18n="pentagon">Pentagon</div>
                     </div>
-                    <div class="precision-control">
-                        <div class="precision-label">
-                            <span>Rotation</span>
-                            <span class="precision-value" id="rotVal">0°</span>
-                        </div>
-                        <input type="range" id="rotInput" min="0" max="360" step="5" value="0"
-                            oninput="updatePentagonTransform()">
+                    <div class="shape-btn" onclick="selectShape('rectangle', this)">
+                        <div class="icon">⬛</div>
+                        <div class="label" data-i18n="rectangle">Rectangle</div>
                     </div>
                 </div>
 
-                <div class="zone-status" id="zone-status-container">
-                    <span class="dot"></span>
-                    <span class="text" id="zone-status">Aucune zone définie</span>
+                <div class="precision-control">
+                    <div class="precision-header">
+                        <span data-i18n="radius">Radius</span>
+                        <span class="precision-val" id="radiusVal">2.0 km</span>
+                    </div>
+                    <input type="range" id="radiusInput" min="500" max="15000" step="100" value="2000"
+                        oninput="updatePentagonTransform()">
+                </div>
+
+                <div class="precision-control">
+                    <div class="precision-header">
+                        <span data-i18n="rotation">Rotation</span>
+                        <span class="precision-val" id="rotVal">0°</span>
+                    </div>
+                    <input type="range" id="rotInput" min="0" max="360" step="5" value="0"
+                        oninput="updatePentagonTransform()">
+                </div>
+
+                <div id="zone-status-container" class="zone-status">
+                    <span id="zone-status" data-i18n="no_zone">No zone defined</span>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-title">Projet</div>
+                <div class="card-title" data-i18n="project">Project</div>
                 <div class="input-group">
-                    <label>Nom du projet</label>
-                    <input type="text" id="projectName" placeholder="Ex: Paris 12e...">
+                    <label data-i18n="project_name">Project Name</label>
+                    <input type="text" id="projectName" data-i18n-placeholder="project_placeholder"
+                        placeholder="My Project">
                 </div>
             </div>
-
-            <button class="btn-secondary" onclick="togglePreview()" style="margin-top: 8px;">
-                👁️ Aperçu dimensions
-            </button>
         </div>
 
-        <!-- Tab: Couches -->
+        <!-- LAYERS TAB -->
         <div id="tab-layers" class="tab-content">
             <div class="card">
-                <div class="card-title">Routes</div>
+                <div class="card-title" data-i18n="roads">Roads</div>
                 <div class="layer-list">
                     <label class="layer-item">
                         <input type="checkbox" id="chk_routes_grands" checked>
                         <div class="layer-info">
-                            <div class="layer-name">🛣️ Autoroutes & Nationales</div>
-                            <div class="layer-desc">Voies principales à grande vitesse</div>
+                            <div class="layer-title">🛣️ <span data-i18n="highways">Highways</span></div>
+                            <div class="layer-desc" data-i18n="highways_desc">Major roads</div>
                         </div>
-                        <span class="layer-badge">Épais</span>
                     </label>
                     <label class="layer-item">
                         <input type="checkbox" id="chk_routes_secondaires" checked>
                         <div class="layer-info">
-                            <div class="layer-name">🚗 Routes Principales</div>
-                            <div class="layer-desc">Départementales et secondaires</div>
+                            <div class="layer-title">🚗 <span data-i18n="main_roads">Main Roads</span></div>
+                            <div class="layer-desc" data-i18n="main_roads_desc">Secondary axes</div>
                         </div>
-                        <span class="layer-badge">Moyen</span>
                     </label>
                     <label class="layer-item">
                         <input type="checkbox" id="chk_routes_locales" checked>
                         <div class="layer-info">
-                            <div class="layer-name">🏘️ Rues Locales</div>
-                            <div class="layer-desc">Résidentielles et piétonnes</div>
+                            <div class="layer-title">🏘️ <span data-i18n="local_streets">Local Streets</span></div>
+                            <div class="layer-desc" data-i18n="local_streets_desc">Small streets</div>
                         </div>
-                        <span class="layer-badge">Fin</span>
                     </label>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-title">Terrain</div>
+                <div class="card-title" data-i18n="environment">Environment</div>
                 <div class="layer-list">
                     <label class="layer-item">
                         <input type="checkbox" id="chk_eau" checked>
                         <div class="layer-info">
-                            <div class="layer-name">💧 Fleuves & Lacs</div>
-                            <div class="layer-desc">Cours d'eau et étendues</div>
+                            <div class="layer-title">💧 <span data-i18n="water">Water</span></div>
+                            <div class="layer-desc" data-i18n="water_desc">Rivers & Lakes</div>
                         </div>
-                        <span class="layer-badge">Surface</span>
                     </label>
                     <label class="layer-item">
                         <input type="checkbox" id="chk_bati" checked>
                         <div class="layer-info">
-                            <div class="layer-name">🏢 Bâtiments</div>
-                            <div class="layer-desc">Emprises bâties</div>
+                            <div class="layer-title">🏢 <span data-i18n="buildings">Buildings</span></div>
+                            <div class="layer-desc" data-i18n="buildings_desc">Structures</div>
                         </div>
-                        <span class="layer-badge">Lourd</span>
                     </label>
                 </div>
             </div>
 
-            <label class="layer-item" style="margin-top: 12px;">
-                <input type="checkbox" id="chk_merge" checked>
-                <div class="layer-info">
-                    <div class="layer-name">🔗 Fusionner les tracés</div>
-                    <div class="layer-desc">Un seul objet par calque</div>
-                </div>
-            </label>
+            <div class="card">
+                <div class="card-title" data-i18n="options">Options</div>
+                <label class="layer-item">
+                    <input type="checkbox" id="chk_merge" checked>
+                    <div class="layer-info">
+                        <div class="layer-title" data-i18n="merge_paths">Merge Paths</div>
+                        <div class="layer-desc">Optimize for cutting</div>
+                    </div>
+                </label>
+            </div>
         </div>
 
-        <!-- Tab: Machine -->
+        <!-- MACHINE TAB -->
         <div id="tab-machine" class="tab-content">
             <div class="card">
-                <div class="card-title">Mode de rendu</div>
-                <div class="input-group">
-                    <label>Géométrie des routes</label>
-                    <select id="roadMode">
-                        <option value="surface">🛣️ Surface (Bande physique)</option>
-                        <option value="centerline">📍 Axe central (Trait)</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>Style de découpe</label>
-                    <select id="renderStyle">
-                        <option value="stroke">⭕ Contour (Découpe laser)</option>
-                        <option value="fill">⬛ Remplissage (Gravure)</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">Dimensions export</div>
-                <div class="settings-grid">
+                <div class="card-title" data-i18n="dimensions">Dimensions</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
                     <div class="input-group">
-                        <label>Largeur (cm)</label>
+                        <label data-i18n="width_cm">Width (cm)</label>
                         <input type="number" id="exportWidth" value="10" min="1" max="100">
                     </div>
                     <div class="input-group">
-                        <label>Épaisseur route (mm)</label>
+                        <label data-i18n="road_thickness">Road Thick. (mm)</label>
                         <input type="number" id="roadThick" value="4" min="0.1" max="20" step="0.1">
                     </div>
-                    <div class="input-group">
-                        <label>Marge cadre (mm)</label>
-                        <input type="number" id="frameMargin" value="5" min="0" max="50" step="1">
-                    </div>
+                </div>
+                <div class="input-group" style="margin-top:16px;">
+                    <label data-i18n="frame_margin">Frame Margin (mm)</label>
+                    <input type="number" id="frameMargin" value="5" min="0" max="50" step="1">
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-title">Fond de carte</div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn-secondary" onclick="setLayer('light')">☀️ Clair</button>
-                    <button class="btn-secondary" onclick="setLayer('dark')">🌙 Sombre</button>
+                <div class="card-title" data-i18n="rendering">Rendering</div>
+                <div class="input-group">
+                    <label data-i18n="road_geometry">Road Geometry</label>
+                    <select id="roadMode">
+                        <option value="surface" data-i18n="surface_mode">🛣️ Surface (Double)</option>
+                        <option value="centerline" data-i18n="centerline_mode">📍 Centerline (Single)</option>
+                    </select>
+                </div>
+                <div class="input-group" style="margin-top:16px;">
+                    <label data-i18n="render_style">Style</label>
+                    <select id="renderStyle">
+                        <option value="stroke" data-i18n="stroke_mode">⭕ Outline (Cut)</option>
+                        <option value="fill" data-i18n="fill_mode">⬛ Fill (Engrave)</option>
+                    </select>
                 </div>
             </div>
 
-            <button class="btn-primary" onclick="downloadSelectedLayers()" style="margin-top: 16px;">
-                ⬇️ Exporter SVG
+            <div class="card">
+                <div class="card-title" data-i18n="basemap">Basemap</div>
+                <div style="display:flex; gap:12px;">
+                    <button class="btn-secondary" onclick="setLayer('light')" data-i18n="light">Light</button>
+                    <button class="btn-secondary" onclick="setLayer('dark')" data-i18n="dark">Dark</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <button class="btn-primary" onclick="downloadSelectedLayers()">
+                📥 <span data-i18n="download_svg">Download SVG</span>
             </button>
-
-            <div class="status-bar" id="global-status-bar" style="display: none;">
-                <span class="status-text" id="global-status"></span>
+            <div class="status-pill">
+                <span id="global-status" data-i18n="ready">Ready</span>
             </div>
         </div>
     </div>
 
-    <!-- Floating Search Bar -->
-    <div class="search-container">
-        <div class="search-box">
-            <input type="text" class="search-input" id="searchInput" placeholder="Rechercher une adresse...">
-            <button class="search-btn">🔍</button>
-        </div>
-        <div class="search-results" id="searchResults"></div>
-    </div>
-
-    <!-- Preview Overlay -->
-    <div class="preview-overlay" id="previewOverlay" onclick="togglePreview()">
-        <div class="preview-card" onclick="event.stopPropagation()">
-            <div class="preview-title">📐 Dimensions d'export</div>
-            <div class="preview-dimensions">
-                <div class="preview-dim">
-                    <div class="value" id="preview-width">10</div>
-                    <div class="label">Largeur (cm)</div>
-                </div>
-                <div class="preview-dim">
-                    <div class="value" id="preview-height">--</div>
-                    <div class="label">Hauteur (cm)</div>
-                </div>
-            </div>
-            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
-                Échelle: <strong id="preview-scale">1cm = --m</strong>
-            </div>
-            <button class="btn-secondary" onclick="togglePreview()">Fermer</button>
+    <!-- FLOATING SEARCH -->
+    <div class="search-wrapper">
+        <div class="search-bar">
+            <input type="text" class="search-input" id="addressInput" data-i18n-placeholder="search_placeholder"
+                placeholder="Search address...">
+            <button class="search-btn" onclick="searchAddress()">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </button>
         </div>
     </div>
 
     <div id="map"></div>
 
     <script>
-        // Init Map
-        const map = L.map('map').setView([48.8566, 2.3522], 13);
+        // === TRANSLATIONS ===
+        const translations = {
+            en: {
+                tab_zone: "Zone", tab_layers: "Layers", tab_machine: "Machine",
+                cutting_shape: "Cutting Shape", pentagon: "Pentagon", rectangle: "Rectangle",
+                radius: "Radius", rotation: "Rotation", no_zone: "No zone defined",
+                project: "Project", project_name: "Project Name", project_placeholder: "e.g. Paris 12th...",
+                roads: "Roads", highways: "Highways", highways_desc: "Main high-speed roads",
+                main_roads: "Main Roads", main_roads_desc: "Secondary axes",
+                local_streets: "Local Streets", local_streets_desc: "Residential",
+                environment: "Environment", water: "Water", water_desc: "Rivers & Lakes",
+                buildings: "Buildings", buildings_desc: "Structures",
+                options: "Options", merge_paths: "Merge Paths",
+                dimensions: "Dimensions", width_cm: "Width (cm)", road_thickness: "Road Thick. (mm)",
+                frame_margin: "Frame Margin (mm)", rendering: "Rendering", road_geometry: "Road Geometry",
+                surface_mode: "🛣️ Surface (Double)", centerline_mode: "📍 Centerline (Single)",
+                render_style: "Render Style", stroke_mode: "⭕ Outline (Cut)", fill_mode: "⬛ Fill (Engrave)",
+                basemap: "Basemap", light: "Light", dark: "Dark",
+                download_svg: "Download SVG", ready: "Ready",
+                search_placeholder: "Search an address...",
+                zone_active: "Active", zone_valid: "Zone Valid",
+                processing: "Processing", starting: "Starting...", export_done: "✅ Export Complete!",
+                export_errors: "⚠️ Completed with errors.", large_area_warning: "⚠️ Area is very large.\nRisk of timeout.\nContinue?",
+                select_layer: "Select a layer!"
+            },
+            fr: {
+                tab_zone: "Zone", tab_layers: "Couches", tab_machine: "Machine",
+                cutting_shape: "Forme Découpe", pentagon: "Pentagone", rectangle: "Rectangle",
+                radius: "Rayon", rotation: "Rotation", no_zone: "Aucune zone",
+                project: "Projet", project_name: "Nom du Projet", project_placeholder: "Ex: Paris 12e...",
+                roads: "Routes", highways: "Autoroutes", highways_desc: "Vitesse élevée",
+                main_roads: "Principales", main_roads_desc: "Axes secondaires",
+                local_streets: "Rues Locales", local_streets_desc: "Quartiers",
+                environment: "Environnement", water: "Eau", water_desc: "Fleuves & Lacs",
+                buildings: "Bâtiments", buildings_desc: "constructions",
+                options: "Options", merge_paths: "Fusionner Tracés",
+                dimensions: "Dimensions", width_cm: "Largeur (cm)", road_thickness: "Épaisseur Rte (mm)",
+                frame_margin: "Marge Cadre (mm)", rendering: "Rendu", road_geometry: "Géométrie Route",
+                surface_mode: "🛣️ Surface (Double)", centerline_mode: "📍 Axe (Simple)",
+                render_style: "Style", stroke_mode: "⭕ Contour (Découpe)", fill_mode: "⬛ Remplissage (Gravure)",
+                basemap: "Fond de Carte", light: "Clair", dark: "Sombre",
+                download_svg: "Télécharger SVG", ready: "Prêt",
+                search_placeholder: "Chercher une adresse...",
+                zone_active: "Actif", zone_valid: "Zone Valide",
+                processing: "Traitement", starting: "Démarrage...", export_done: "✅ Export Terminé !",
+                export_errors: "⚠️ Erreurs détectées.", large_area_warning: "⚠️ Zone très large.\nRisque de timeout.\nContinuer ?",
+                select_layer: "Sélectionnez une couche !"
+            },
+            bg: {
+                tab_zone: "Зона", tab_layers: "Слоеве", tab_machine: "Машина",
+                cutting_shape: "Форма", pentagon: "Петоъгълник", rectangle: "Правоъгълник",
+                radius: "Радиус", rotation: "Въртене", no_zone: "Няма зона",
+                project: "Проект", project_name: "Име", project_placeholder: "Напр: София...",
+                roads: "Пътища", highways: "Магистрали", highways_desc: "Скоростни",
+                main_roads: "Главни", main_roads_desc: "Второстепенни",
+                local_streets: "Улици", local_streets_desc: "Квартални",
+                environment: "Среда", water: "Вода", water_desc: "Реки и езера",
+                buildings: "Сгради", buildings_desc: "Постройки",
+                options: "Опции", merge_paths: "Обедини",
+                dimensions: "Размери", width_cm: "Ширина (см)", road_thickness: "Дебелина път (мм)",
+                frame_margin: "Рамка (мм)", rendering: "Рендер", road_geometry: "Геометрия",
+                surface_mode: "🛣️ Повърхност", centerline_mode: "📍 Линия",
+                render_style: "Стил", stroke_mode: "⭕ Контур", fill_mode: "⬛ Запълване",
+                basemap: "Карта", light: "Светла", dark: "Тъмна",
+                download_svg: "Изтегли SVG", ready: "Готов",
+                search_placeholder: "Търси адрес...",
+                zone_active: "Активен", zone_valid: "Валидна",
+                processing: "Обработка", starting: "Старт...", export_done: "✅ Готово!",
+                export_errors: "⚠️ Грешки.", large_area_warning: "⚠️ Голяма зона.\nРиск от прекъсване.\nПродължи?",
+                select_layer: "Избери слой!"
+            }
+        };
 
-        // Layers
+        let currentLang = 'en';
+
+        function setLang(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            applyTranslations();
+        }
+
+        function t(key) {
+            return translations[currentLang][key] || translations['en'][key] || key;
+        }
+
+        function applyTranslations() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[currentLang][key]) {
+                    el.textContent = translations[currentLang][key];
+                }
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (translations[currentLang][key]) {
+                    el.placeholder = translations[currentLang][key];
+                }
+            });
+            document.querySelectorAll('select option[data-i18n]').forEach(opt => {
+                const key = opt.getAttribute('data-i18n');
+                if (translations[currentLang][key]) {
+                    opt.textContent = translations[currentLang][key];
+                }
+            });
+        }
+
+        // === TAB NAVIGATION ===
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.target.closest('.tab').classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        function selectShape(shape, btn) {
+            document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (shape === 'pentagon') initPentagon();
+            else drawRectangle();
+        }
+
+        // === ADDRESS SEARCH ===
+        async function searchAddress() {
+            const query = document.getElementById('addressInput').value;
+            if (!query) return;
+            try {
+                const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+                const data = await resp.json();
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lon = parseFloat(data[0].lon);
+                    map.setView([lat, lon], 14);
+                    drawPentagon({ lat, lng: lon });
+                }
+            } catch (e) { console.error('Search error:', e); }
+        }
+
+        document.getElementById('addressInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') searchAddress();
+        });
+
+        // === MAP INITIALIZATION ===
+        const map = L.map('map', { zoomControl: false }).setView([48.8566, 2.3522], 13);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
         const layers = {
             osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }),
             light: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CartoDB' }),
@@ -937,131 +914,10 @@
         layers.light.addTo(map);
 
         function setLayer(name) {
-            map.eachLayer(layer => {
-                if (layer._url) map.removeLayer(layer);
-            });
+            map.eachLayer(layer => { if (layer._url) map.removeLayer(layer); });
             layers[name].addTo(map);
         }
 
-        // V33: Tab Switching
-        function switchTab(tabName) {
-            // Update tab buttons
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            event.target.closest('.tab').classList.add('active');
-
-            // Update tab content
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.getElementById('tab-' + tabName).classList.add('active');
-        }
-
-        // V33: Shape Selection
-        function selectShape(shape, btn) {
-            // Update buttons
-            document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            // Trigger shape
-            if (shape === 'pentagon') initPentagon();
-            else if (shape === 'rectangle') drawRectangle();
-            else if (shape === 'circle') initCircle();
-        }
-
-        // V33: Preview Toggle
-        function togglePreview() {
-            const overlay = document.getElementById('previewOverlay');
-            overlay.classList.toggle('active');
-
-            if (overlay.classList.contains('active')) {
-                // Calculate dimensions
-                const widthCm = parseFloat(document.getElementById('exportWidth').value) || 10;
-                document.getElementById('preview-width').textContent = widthCm;
-
-                if (selectedBounds) {
-                    const latSpan = selectedBounds.getNorth() - selectedBounds.getSouth();
-                    const lonSpan = selectedBounds.getEast() - selectedBounds.getWest();
-                    const aspectRatio = latSpan / lonSpan;
-                    const heightCm = (widthCm * aspectRatio).toFixed(1);
-                    document.getElementById('preview-height').textContent = heightCm;
-
-                    // Calculate scale
-                    const metersPerDegree = 111320;
-                    const realWidthM = lonSpan * metersPerDegree * Math.cos((selectedBounds.getNorth() + selectedBounds.getSouth()) / 2 * Math.PI / 180);
-                    const scalePerCm = (realWidthM / widthCm).toFixed(0);
-                    document.getElementById('preview-scale').textContent = `1cm = ${scalePerCm}m`;
-                } else {
-                    document.getElementById('preview-height').textContent = '--';
-                    document.getElementById('preview-scale').textContent = '1cm = --m';
-                }
-            }
-        }
-
-        // V33: Update Zone Status
-        function updateZoneStatus(message, isActive) {
-            const container = document.getElementById('zone-status-container');
-            const text = document.getElementById('zone-status');
-            text.textContent = message;
-            container.classList.toggle('active', isActive);
-        }
-
-        // V33: Show Status Bar
-        function showStatus(message) {
-            const bar = document.getElementById('global-status-bar');
-            const text = document.getElementById('global-status');
-            text.textContent = message;
-            bar.style.display = 'block';
-        }
-
-
-        // V32: Custom Address Search (Nominatim)
-        const searchInput = document.getElementById('searchInput');
-        const searchResults = document.getElementById('searchResults');
-        let searchTimeout = null;
-
-        searchInput.addEventListener('input', function () {
-            clearTimeout(searchTimeout);
-            const query = this.value.trim();
-
-            if (query.length < 3) {
-                searchResults.classList.remove('active');
-                return;
-            }
-
-            searchTimeout = setTimeout(async () => {
-                try {
-                    const resp = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=fr,be,ch,lu`);
-                    const results = await resp.json();
-
-                    searchResults.innerHTML = '';
-                    if (results.length > 0) {
-                        results.forEach(result => {
-                            const item = document.createElement('div');
-                            item.className = 'search-result-item';
-                            item.textContent = result.display_name;
-                            item.addEventListener('click', () => {
-                                map.setView([parseFloat(result.lat), parseFloat(result.lon)], 15);
-                                searchResults.classList.remove('active');
-                                searchInput.value = result.display_name.split(',')[0];
-                            });
-                            searchResults.appendChild(item);
-                        });
-                        searchResults.classList.add('active');
-                    } else {
-                        searchResults.classList.remove('active');
-                    }
-                } catch (e) {
-                    console.error('Search error:', e);
-                }
-            }, 300);
-        });
-
-        // Close results on click outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.search-container')) {
-                searchResults.classList.remove('active');
-            }
-        });
-
-        // --- DRAW FEATURE ---
         const drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
@@ -1072,129 +928,70 @@
 
         function drawRectangle() {
             isPentagonActive = false;
-            isCircleActive = false;
             pentagonCenter = null;
-            circleCenter = null;
-            new L.Draw.Rectangle(map, { shapeOptions: { color: '#2563eb' } }).enable();
-        }
-
-        function initPentagon() {
-            isPentagonActive = true;
-            isCircleActive = false;
-            circleCenter = null;
-            const center = map.getCenter();
-            drawPentagon(center);
-        }
-
-        // --- PENTAGON LOGIC (RESIZABLE + ROTATABLE) ---
-        function drawPentagon(center) {
-            drawnItems.clearLayers();
-            pentagonCenter = center;
-            circleCenter = null;
-            isCircleActive = false;
-
-            // Radius from slider
-            const rMeters = parseInt(document.getElementById('radiusInput').value);
-            const radiusDeg = rMeters / 111320;
-
-            // Rotation from slider (deg -> rad)
-            const rotDeg = parseInt(document.getElementById('rotInput').value);
-            const rotRad = rotDeg * (Math.PI / 180);
-
-            const points = [];
-            const sides = 5;
-            const baseRot = -Math.PI / 2; // Point up default
-
-            for (let i = 0; i < sides; i++) {
-                const angle = (i * 2 * Math.PI) / sides + baseRot + rotRad;
-                const latOffset = radiusDeg * Math.sin(angle);
-                const lonOffset = (radiusDeg * Math.cos(angle)) / Math.cos(center.lat * Math.PI / 180);
-
-                points.push([center.lat + latOffset, center.lng + lonOffset]);
-            }
-            const polygon = L.polygon(points, { color: '#c026d3', weight: 3, fillOpacity: 0.1 });
-            drawnItems.addLayer(polygon);
-            selectedShapeLayer = polygon;
-            selectedBounds = polygon.getBounds();
-
-            isPentagonActive = true;
-            updateZoneStatus("⬠ Pentagone (" + (rMeters / 1000).toFixed(1) + " km)", true);
-        }
-
-        // --- CIRCLE LOGIC (RESIZABLE) ---
-        let isCircleActive = false;
-        let circleCenter = null;
-
-        function initCircle() {
-            isPentagonActive = false;
-            pentagonCenter = null;
-            isCircleActive = true;
-            updateZoneStatus("⬤ Cliquez sur la carte", false);
-        }
-
-        function drawCircle(center) {
-            drawnItems.clearLayers();
-            circleCenter = center;
-            pentagonCenter = null;
-            isPentagonActive = false;
-
-            const rMeters = parseInt(document.getElementById('radiusInput').value);
-
-            // Use Turf to create a proper circle polygon (for clipping compatibility)
-            const circleGeoJSON = turf.circle([center.lng, center.lat], rMeters / 1000, { units: 'kilometers', steps: 64 });
-            const coords = circleGeoJSON.geometry.coordinates[0].map(c => [c[1], c[0]]);
-
-            const polygon = L.polygon(coords, { color: '#c026d3', weight: 3, fillOpacity: 0.1 });
-            drawnItems.addLayer(polygon);
-            selectedShapeLayer = polygon;
-            selectedBounds = polygon.getBounds();
-
-            isCircleActive = true;
-            updateZoneStatus("⬤ Cercle (" + (rMeters / 1000).toFixed(1) + " km)", true);
+            new L.Draw.Rectangle(map, { shapeOptions: { color: '#8b5cf6' } }).enable();
         }
 
         function updatePentagonTransform() {
             const r = document.getElementById('radiusInput').value;
             const rot = document.getElementById('rotInput').value;
-
             document.getElementById('radiusVal').textContent = (r / 1000).toFixed(1) + " km";
             document.getElementById('rotVal').textContent = rot + "°";
-
-            if (isPentagonActive && pentagonCenter) {
-                drawPentagon(pentagonCenter);
-            }
-            if (isCircleActive && circleCenter) {
-                drawCircle(circleCenter);
-            }
+            if (isPentagonActive && pentagonCenter) drawPentagon(pentagonCenter);
         }
 
+        function initPentagon() {
+            const center = map.getCenter();
+            drawPentagon(center);
+        }
 
-        // Events
+        function drawPentagon(center) {
+            drawnItems.clearLayers();
+            pentagonCenter = center;
+            const rMeters = parseInt(document.getElementById('radiusInput').value);
+            const radiusDeg = rMeters / 111320;
+            const rotDeg = parseInt(document.getElementById('rotInput').value);
+            const rotRad = rotDeg * (Math.PI / 180);
+            const points = [];
+            const sides = 5;
+            const baseRot = -Math.PI / 2;
+            for (let i = 0; i < sides; i++) {
+                const angle = (i * 2 * Math.PI) / sides + baseRot + rotRad;
+                const latOffset = radiusDeg * Math.sin(angle);
+                const lonOffset = (radiusDeg * Math.cos(angle)) / Math.cos(center.lat * Math.PI / 180);
+                points.push([center.lat + latOffset, center.lng + lonOffset]);
+            }
+            const polygon = L.polygon(points, { color: '#8b5cf6', weight: 4, fillOpacity: 0.1 });
+            drawnItems.addLayer(polygon);
+            selectedShapeLayer = polygon;
+            selectedBounds = polygon.getBounds();
+            isPentagonActive = true;
+            document.getElementById('zone-status-container').classList.add('active');
+            document.getElementById('zone-status').textContent = "⬠ " + t('zone_active') + " (" + (rMeters / 1000) + "km)";
+            document.getElementById('zone-status').style.color = "#059669";
+        }
+
         map.on(L.Draw.Event.CREATED, function (e) {
             drawnItems.clearLayers();
             drawnItems.addLayer(e.layer);
             selectedShapeLayer = e.layer;
             selectedBounds = e.layer.getBounds();
             isPentagonActive = false;
-            isCircleActive = false;
-            updateZoneStatus("✅ Zone définie manuellement", true);
+            document.getElementById('zone-status-container').classList.add('active');
+            document.getElementById('zone-status').textContent = "✅ " + t('zone_valid');
         });
 
-        // V32: Click to place circle
-        map.on('click', function (e) {
-            if (isCircleActive && !circleCenter) {
-                drawCircle(e.latlng);
-            }
-        });
+        setTimeout(() => { initPentagon(); applyTranslations(); }, 500);
 
-        // --- MULTI-FILE EXPORT LOGIC (DESTRUCTIVE CLIP + BATCH + ALIGNMENT FRAME) ---
+        // === EXPORT LOGIC (V30 - MODIFIED FOR SURFACE OUTPUT) ===
+        // Logic remains the same: efficient fetching and Turf.js processing
+        // Modification: No difference operation on roads, to allow merging.
 
         async function downloadSelectedLayers() {
             if (map.getZoom() < 12) {
-                if (!confirm("⚠️ ATTENTION : Zone très large.\nRisque de Timeout serveur.\nVoulez-vous continuer ?")) return;
+                if (!confirm(t('large_area_warning'))) return;
             }
 
-            // 1. Define Clipping Mask & Overpass Filter
             let maskPolygon = null;
             let overpassFilter = "";
 
@@ -1205,7 +1002,6 @@
                     coords.push(coords[0]);
                 }
                 maskPolygon = turf.polygon([coords]);
-
                 const polyStr = latlngs.map(pt => `${pt.lat} ${pt.lng}`).join(" ");
                 overpassFilter = `(poly:"${polyStr}")`;
             } else {
@@ -1214,63 +1010,46 @@
                 overpassFilter = `(${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()})`;
             }
 
-            const layers = [
-                { id: 'chk_eau', type: 'eau', name: 'Eau', color: 'blue', fill: true },
-                { id: 'chk_routes_locales', type: 'routes_locales', name: 'Rues', color: 'black', width: 1 },
-                { id: 'chk_routes_secondaires', type: 'routes_secondaires', name: 'Routes_Principales', color: 'orange', width: 3 },
-                { id: 'chk_routes_grands', type: 'routes_grands', name: 'Autoroutes', color: 'red', width: 5 },
-                { id: 'chk_bati', type: 'bati', name: 'Batiments', color: 'black', fill: true }
+            const layerDefs = [
+                { id: 'chk_eau', type: 'eau', name: 'Water', color: 'blue', fill: true },
+                { id: 'chk_routes_locales', type: 'routes_locales', name: 'Streets', color: 'black', width: 1 },
+                { id: 'chk_routes_secondaires', type: 'routes_secondaires', name: 'MainRoads', color: 'orange', width: 3 },
+                { id: 'chk_routes_grands', type: 'routes_grands', name: 'Highways', color: 'red', width: 5 },
+                { id: 'chk_bati', type: 'bati', name: 'Buildings', color: 'black', fill: true }
             ];
 
-            const activeLayers = layers.filter(l => document.getElementById(l.id).checked);
+            const activeLayers = layerDefs.filter(l => document.getElementById(l.id).checked);
             const shouldMerge = document.getElementById('chk_merge').checked;
-
-            // V21 Inputs
             const targetWidthCm = parseFloat(document.getElementById('exportWidth').value) || 10;
             const roadThickMm = parseFloat(document.getElementById('roadThick').value) || 4;
-            const frameMarginMm = parseFloat(document.getElementById('frameMargin').value) || 5; // V30
-            const renderStyle = document.getElementById('renderStyle').value; // 'fill' or 'stroke'
-            const roadMode = document.getElementById('roadMode').value; // 'surface' or 'centerline' (V26)
+            const frameMarginMm = parseFloat(document.getElementById('frameMargin').value) || 5;
+            const renderStyle = document.getElementById('renderStyle').value;
+            const roadMode = document.getElementById('roadMode').value;
 
-            if (activeLayers.length === 0) {
-                alert("Veuillez cocher au moins une couche !");
-                return;
-            }
+            if (activeLayers.length === 0) { alert(t('select_layer')); return; }
 
             const status = document.getElementById("global-status");
-            status.textContent = "Démarrage V32...";
+            status.textContent = t('starting');
 
-            // Prepare SVG Dimensions
             const bounds = selectedBounds || map.getBounds();
-            const minLat = bounds.getSouth();
-            const maxLat = bounds.getNorth();
-            const minLon = bounds.getWest();
-            const maxLon = bounds.getEast();
+            const minLat = bounds.getSouth(), maxLat = bounds.getNorth();
+            const minLon = bounds.getWest(), maxLon = bounds.getEast();
 
-            // Calc Aspect Ratio & Height
             const widthGeo = turf.distance([minLon, (minLat + maxLat) / 2], [maxLon, (minLat + maxLat) / 2], { units: 'kilometers' });
             const heightGeo = turf.distance([(minLon + maxLon) / 2, minLat], [(minLon + maxLon) / 2, maxLat], { units: 'kilometers' });
             const aspectRatio = heightGeo / widthGeo;
-
-            // SVG output Size
-            const widthSvgPx = 1000;
-            const heightSvgPx = 1000 * aspectRatio;
+            const widthSvgPx = 1000, heightSvgPx = 1000 * aspectRatio;
             const targetHeightCm = targetWidthCm * aspectRatio;
-
-            // Base Scale Calc
             const metersPerCm = (widthGeo * 1000) / targetWidthCm;
-
-            console.log(`V21: Width=${targetWidthCm}cm, RoadThick=${roadThickMm}mm. Scale: 1cm=${metersPerCm.toFixed(1)}m.`);
 
             function project(lat, lon) {
                 const px = ((lon - minLon) / (maxLon - minLon)) * widthSvgPx;
-                const py = heightSvgPx - ((lat - minLat) / (maxLat - minLat) * heightSvgPx); // fixed simplified projection
+                const py = heightSvgPx - ((lat - minLat) / (maxLat - minLat) * heightSvgPx);
                 return [px, py];
             }
 
-            // Alignment Frame
             let framePathD = "";
-            if (maskPolygon && maskPolygon.geometry && maskPolygon.geometry.coordinates) {
+            if (maskPolygon?.geometry?.coordinates) {
                 const ring = maskPolygon.geometry.coordinates[0];
                 ring.forEach((pt, i) => {
                     const [px, py] = project(pt[1], pt[0]);
@@ -1280,79 +1059,11 @@
             }
 
             let errorCount = 0;
-            const safeProjName = (document.getElementById('projectName').value || "Carte_Laser").replace(/[^a-z0-9]/gi, '_');
+            const safeProjName = (document.getElementById('projectName').value || "LaserMap").replace(/[^a-z0-9]/gi, '_');
             const dateStr = new Date().toISOString().split('T')[0];
 
-            // V32: Combine ALL road layers into one if in Surface mode
-            const roadLayers = activeLayers.filter(l => l.type.startsWith('routes'));
-            const nonRoadLayers = activeLayers.filter(l => !l.type.startsWith('routes'));
-
-            if (roadLayers.length > 0 && roadMode === 'surface') {
-                status.textContent = "V32: Fusion de toutes les routes...";
-
-                // Build combined query for all selected road types
-                let roadQueryParts = [];
-                roadLayers.forEach(layer => {
-                    if (layer.type === 'routes_grands') roadQueryParts.push(`way["highway"~"motorway|trunk|primary"]${overpassFilter}`);
-                    else if (layer.type === 'routes_secondaires') roadQueryParts.push(`way["highway"~"secondary|tertiary"]${overpassFilter}`);
-                    else if (layer.type === 'routes_locales') roadQueryParts.push(`way["highway"~"residential|unclassified|living_street|pedestrian"]${overpassFilter}`);
-                });
-
-                const combinedRoadQuery = `[out:json][timeout:600]; (${roadQueryParts.join('; ')}); out geom tags;`;
-
-                try {
-                    const resp = await fetch(`https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(combinedRoadQuery)}`);
-                    if (!resp.ok) throw new Error("Erreur HTTP " + resp.status);
-                    const data = await resp.json();
-
-                    status.textContent = `Routes combinées: ${data.elements ? data.elements.length : 0} segments...`;
-
-                    // Use highest thickness (routes_grands multiplier = 1.0)
-                    const combinedRadius = (roadThickMm / 10 / 2) * metersPerCm;
-
-                    // Create a combined layer object
-                    const combinedLayer = {
-                        type: 'routes_combined',
-                        name: 'Routes_Combinées',
-                        color: 'black'
-                    };
-
-                    const groupContent = processLayerGeometry(data, combinedLayer, maskPolygon, project, metersPerPx(maxLat, minLat), true, true, combinedRadius, frameMarginMm, metersPerCm);
-
-                    if (groupContent) {
-                        let fillVal = "none";
-                        let strokeVal = "red";
-                        let strokeWidthVal = "0.5";
-
-                        if (renderStyle === 'fill') {
-                            fillVal = "black";
-                            strokeVal = "none";
-                            strokeWidthVal = "0";
-                        }
-
-                        const layerSVG = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="${targetWidthCm}cm" height="${targetHeightCm.toFixed(2)}cm" viewBox="0 0 ${widthSvgPx.toFixed(2)} ${heightSvgPx.toFixed(2)}">
-  <g id="Routes_Combinées" stroke="${strokeVal}" fill="${fillVal}" stroke-width="${strokeWidthVal}" stroke-linecap="round" stroke-linejoin="round">
-    ${groupContent}
-  </g>
-  <!-- Cadre d'Alignement -->
-  <path d="${framePathD}" fill="none" stroke="red" stroke-width="0.5" vector-effect="non-scaling-stroke" id="frame_alignment" />
-</svg>`;
-                        const filename = `${safeProjName}_Routes_Combinées_V32_${dateStr}.svg`;
-                        downloadStringAsFile(layerSVG, filename);
-                        console.log('V32: Combined roads exported successfully.');
-                    }
-                } catch (e) {
-                    console.error("V32 Combined roads failed", e);
-                    errorCount++;
-                }
-            }
-
-            // Process non-road layers (and roads in centerline mode) individually
-            const layersToProcess = roadMode === 'surface' ? nonRoadLayers : activeLayers;
-
-            for (const layer of layersToProcess) {
-                status.textContent = "Traitement : " + layer.name + "...";
+            for (const layer of activeLayers) {
+                status.textContent = t('processing') + ": " + layer.name;
 
                 let queryType = "";
                 if (layer.type === 'routes_grands') queryType = `way["highway"~"motorway|trunk|primary"]`;
@@ -1361,73 +1072,37 @@
                 else if (layer.type === 'eau') queryType = `way["natural"="water"]; way["waterway"]`;
                 else if (layer.type === 'bati') queryType = `way["building"]`;
 
-                let queryBody = "";
-                if (layer.type === 'eau') {
-                    queryBody = `way["natural"="water"]${overpassFilter}; way["waterway"]${overpassFilter};`;
-                } else {
-                    queryBody = `${queryType}${overpassFilter};`;
-                }
+                let queryBody = layer.type === 'eau'
+                    ? `way["natural"="water"]${overpassFilter}; way["waterway"]${overpassFilter};`
+                    : `${queryType}${overpassFilter};`;
 
-                const query = `[out:json][timeout:600]; (${queryBody}); out geom tags;`;
+                const query = `[out:json][timeout:900]; (${queryBody}); out geom tags;`;
 
                 try {
                     const resp = await fetch(`https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(query)}`);
-                    if (!resp.ok) throw new Error("Erreur HTTP " + resp.status);
+                    if (!resp.ok) throw new Error("API Error " + resp.status);
                     const data = await resp.json();
 
-                    status.textContent = `${layer.name}: ${data.elements ? data.elements.length : 0} objets...`;
+                    status.textContent = `${layer.name}: ${data.elements?.length || 0} items...`;
 
-                    // Determine radius based on layer hierarchy (V25)
-                    let useBuffer = false;
-                    let radius = 0;
-
-                    if (layer.type.startsWith('routes')) {
-                        // V26: Check Geometry Mode
-                        if (roadMode === 'surface') {
-                            useBuffer = true;
-                            // Base Thickness
-                            let multiplier = 1.0;
-                            if (layer.type === 'routes_secondaires') multiplier = 0.7;
-                            if (layer.type === 'routes_locales') multiplier = 0.4;
-
-                            radius = ((roadThickMm / 10 / 2) * metersPerCm) * multiplier;
-                        } else {
-                            // Centerline Mode: No Buffer
-                            useBuffer = false;
-                            radius = 0;
-                        }
+                    let useBuffer = false, radius = 0;
+                    if (layer.type.startsWith('routes') && roadMode === 'surface') {
+                        useBuffer = true;
+                        let multiplier = layer.type === 'routes_secondaires' ? 0.7 : layer.type === 'routes_locales' ? 0.4 : 1.0;
+                        radius = ((roadThickMm / 10 / 2) * metersPerCm) * multiplier;
                     }
 
-                    // Generate Geometry
                     const groupContent = processLayerGeometry(data, layer, maskPolygon, project, metersPerPx(maxLat, minLat), shouldMerge, useBuffer, radius, frameMarginMm, metersPerCm);
 
                     if (groupContent) {
-                        // V23: Style Logic
-                        let fillVal = "none";
-                        let strokeVal = "none";
-                        let strokeWidthVal = "0";
-
-                        // Is this layer a "Surface" (Filled)? 
-                        // Water/Builds are filled. Roads are filled (buffered) in V21+.
-                        const isSurface = (layer.fill || useBuffer);
+                        const isSurface = layer.fill || useBuffer;
+                        let fillVal = "none", strokeVal = "none", strokeWidthVal = "0";
 
                         if (renderStyle === 'fill') {
-                            // MODE FILL: Black body, No stroke
-                            if (isSurface) {
-                                fillVal = layer.color;
-                                strokeVal = "none";
-                            } else {
-                                // Fallback for pure lines (if any)
-                                fillVal = "none";
-                                strokeVal = layer.color;
-                                strokeWidthVal = layer.width || 1;
-                            }
+                            if (isSurface) { fillVal = layer.color; strokeVal = "none"; }
+                            else { fillVal = "none"; strokeVal = layer.color; strokeWidthVal = layer.width || 1; }
                         } else {
-                            // MODE STROKE (Outline/Cut): No Fill, Red Stroke
-                            fillVal = "none";
-                            // For cut, usually red, thin.
-                            strokeVal = "red";
-                            strokeWidthVal = "0.5"; // Thin line for laser vector
+                            fillVal = "none"; strokeVal = "red"; strokeWidthVal = "0.5";
                         }
 
                         const layerSVG = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -1435,219 +1110,108 @@
   <g id="${layer.name}" stroke="${strokeVal}" fill="${fillVal}" stroke-width="${strokeWidthVal}" stroke-linecap="round" stroke-linejoin="round">
     ${groupContent}
   </g>
-  <!-- Cadre d'Alignement -->
   <path d="${framePathD}" fill="none" stroke="red" stroke-width="0.5" vector-effect="non-scaling-stroke" id="frame_alignment" />
 </svg>`;
-                        const filename = `${safeProjName}_${layer.name}_V32_${dateStr}.svg`;
-                        downloadStringAsFile(layerSVG, filename);
-                    } else {
-                        console.warn("Aucune géométrie pour " + layer.name);
+                        downloadStringAsFile(layerSVG, `${safeProjName}_${layer.name}_${dateStr}.svg`);
                     }
-
                 } catch (e) {
                     console.error(e);
                     errorCount++;
-                    status.textContent = "❌ Echec sur " + layer.name + " " + e.message;
+                    status.textContent = "❌ " + layer.name;
                     await new Promise(r => setTimeout(r, 2000));
                 }
-
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, 500));
             }
 
-            if (errorCount > 0) alert("Attention : " + errorCount + " calque(s) ont échoué.");
-            status.textContent = errorCount === 0 ? "✅ Export V32 Terminé !" : "⚠️ Terminé avec erreurs.";
+            status.textContent = errorCount === 0 ? t('export_done') : t('export_errors');
         }
 
-        function metersPerPx(maxLat, minLat) {
-            return ((maxLat - minLat) * 111320) / 1000;
-        }
+        function metersPerPx(maxLat, minLat) { return ((maxLat - minLat) * 111320) / 1000; }
 
-        // --- GEOMETRY PROCESSOR (V30: Robustness + Difference) ---
         function processLayerGeometry(data, layer, maskPolygon, projectFn, mPerPx, shouldMerge, useBuffer, bufferRadius, frameMarginMm, metersPerCm) {
             if (!data.elements) return "";
+            let parts = [], compoundD = "", features = [];
 
-            let parts = [];
-            let compoundD = "";
-
-            // 1. Convert to Turf Features / Buffer if needed
-            let features = [];
             data.elements.forEach(el => {
                 if (!el.geometry || el.geometry.length < 2) return;
                 const coords = el.geometry.map(p => [p.lon, p.lat]);
 
-                if (layer.fill || (layer.type === 'eau')) {
-                    // WATER LOGIC (Keep V18)
-                    const isLinearWater = (layer.type === 'eau' && (el.tags.waterway === 'river' || el.tags.waterway === 'canal' || el.tags.waterway === 'stream'));
+                if (layer.fill || layer.type === 'eau') {
+                    const isLinearWater = layer.type === 'eau' && ['river', 'canal', 'stream'].includes(el.tags?.waterway);
                     if (isLinearWater) {
-                        let pxWidth = 8;
-                        if (el.tags.waterway === 'river') pxWidth = 25;
-                        if (el.tags.waterway === 'canal') pxWidth = 15;
-                        try {
-                            const line = turf.lineString(coords);
-                            const buf = turf.buffer(line, (pxWidth * mPerPx) / 2, { units: 'meters', steps: 12 });
-                            features.push(buf);
-                        } catch (e) { }
-                    } else {
-                        if (coords.length > 2) {
-                            if (coords[0][0] !== coords[coords.length - 1][0]) coords.push(coords[0]);
-                            try { features.push(turf.polygon([coords])); } catch (e) { }
-                        }
+                        let pxWidth = el.tags.waterway === 'river' ? 25 : el.tags.waterway === 'canal' ? 15 : 8;
+                        try { features.push(turf.buffer(turf.lineString(coords), (pxWidth * mPerPx) / 2, { units: 'meters', steps: 12 })); } catch (e) { }
+                    } else if (coords.length > 2) {
+                        if (coords[0][0] !== coords[coords.length - 1][0]) coords.push(coords[0]);
+                        try { features.push(turf.polygon([coords])); } catch (e) { }
                     }
-                }
-                else {
-                    // ROADS LOGIC - V29: Collect lines first, buffer later
-                    try {
-                        const line = turf.lineString(coords);
-                        const cleanLine = turf.cleanCoords(line);
-                        features.push(cleanLine); // Just collect the line
-                    } catch (e) { }
+                } else {
+                    try { features.push(turf.cleanCoords(turf.lineString(coords))); } catch (e) { }
                 }
             });
 
-            // 2. ROADS: Merge lines first, then buffer the whole thing (V29)
             if (layer.type.startsWith('routes') && useBuffer && bufferRadius > 0 && features.length > 0) {
                 try {
-                    console.log(`V29: Processing ${features.length} road segments...`);
-
-                    // Step 1: Combine all lines into a FeatureCollection
-                    const lineCollection = turf.featureCollection(features);
-
-                    // Step 2: Buffer the entire collection at once
-                    // This creates a unified buffer with rounded caps that connect at intersections
-                    const bufferedCollection = turf.buffer(lineCollection, bufferRadius, {
-                        units: 'meters',
-                        steps: 16  // Smooth rounded caps
-                    });
-
-                    // Step 3: Union all the buffered polygons into one
-                    if (bufferedCollection && bufferedCollection.features && bufferedCollection.features.length > 0) {
-                        console.log(`V29: Buffered into ${bufferedCollection.features.length} polygons, now unioning...`);
-
-                        // Batch union for stability
-                        const BATCH_SIZE = 50;
-                        let processingQueue = bufferedCollection.features;
-
-                        while (processingQueue.length > 1) {
-                            let nextQueue = [];
-                            for (let i = 0; i < processingQueue.length; i += BATCH_SIZE) {
-                                const chunk = processingQueue.slice(i, i + BATCH_SIZE);
-                                if (chunk.length === 1) {
-                                    nextQueue.push(chunk[0]);
-                                } else {
+                    const buffered = turf.buffer(turf.featureCollection(features), bufferRadius, { units: 'meters', steps: 16 });
+                    if (buffered?.features?.length > 0) {
+                        let queue = buffered.features;
+                        while (queue.length > 1) {
+                            let next = [];
+                            for (let i = 0; i < queue.length; i += 50) {
+                                const chunk = queue.slice(i, i + 50);
+                                if (chunk.length === 1) next.push(chunk[0]);
+                                else {
                                     let merged = chunk[0];
-                                    for (let j = 1; j < chunk.length; j++) {
-                                        try { merged = turf.union(merged, chunk[j]); } catch (e) { }
-                                    }
-                                    nextQueue.push(merged);
+                                    for (let j = 1; j < chunk.length; j++) { try { merged = turf.union(merged, chunk[j]); } catch (e) { } }
+                                    next.push(merged);
                                 }
                             }
-                            processingQueue = nextQueue;
+                            queue = next;
                         }
-
-                        if (processingQueue.length > 0) {
-                            let roadSurface = turf.cleanCoords(processingQueue[0]);
-                            roadSurface = turf.rewind(roadSurface);
-
-                            // V30: Create outer frame and apply Difference
-                            // Calculate frame margin in meters
-                            const frameMarginMeters = (frameMarginMm / 10) * metersPerCm;
-
-                            if (frameMarginMeters > 0) {
-                                console.log(`V30: Creating outer frame with ${frameMarginMm}mm margin (${frameMarginMeters.toFixed(1)}m)...`);
-                                try {
-                                    // Create outer pentagon by buffering the mask
-                                    const outerFrame = turf.buffer(maskPolygon, frameMarginMeters, {
-                                        units: 'meters',
-                                        steps: 16
-                                    });
-
-                                    // Apply Difference: OuterFrame - RoadSurface
-                                    const result = turf.difference(outerFrame, roadSurface);
-
-                                    if (result) {
-                                        features = [result];
-                                        console.log('V30: Difference operation successful.');
-                                    } else {
-                                        // Fallback to just the road surface if difference fails
-                                        features = [roadSurface];
-                                        console.warn('V30: Difference returned null, using road surface.');
-                                    }
-                                } catch (diffErr) {
-                                    console.warn('V30: Difference failed', diffErr);
-                                    features = [roadSurface];
-                                }
-                            } else {
-                                // No frame margin, just use road surface
-                                features = [roadSurface];
-                            }
-
-                            console.log('V30: Road processing complete.');
+                        if (queue.length > 0) {
+                            let roadSurface = turf.rewind(turf.cleanCoords(queue[0]));
+                            // Output road surface directly (NO DIFFERENCE OP)
+                            features = [roadSurface];
                         }
                     }
-                } catch (e) {
-                    console.warn("V30 Road processing failed", e);
-                }
-            }
-            // 2b. WATER: Keep existing union logic
-            else if (layer.type === 'eau' && features.length > 0) {
+                } catch (e) { console.warn("Road processing failed", e); }
+            } else if (layer.type === 'eau' && features.length > 0 && features.length <= 4000) {
                 try {
-                    if (features.length > 4000) {
-                        console.warn("Trop d'éléments pour Union (" + features.length + "). Skip Union.");
-                    } else {
-                        const BATCH_SIZE = 50;
-                        let processingQueue = features;
-
-                        while (processingQueue.length > 1) {
-                            let nextQueue = [];
-                            for (let i = 0; i < processingQueue.length; i += BATCH_SIZE) {
-                                const chunk = processingQueue.slice(i, i + BATCH_SIZE);
-                                if (chunk.length === 1) {
-                                    nextQueue.push(chunk[0]);
-                                } else {
-                                    let merged = chunk[0];
-                                    for (let j = 1; j < chunk.length; j++) {
-                                        try { merged = turf.union(merged, chunk[j]); } catch (e) { }
-                                    }
-                                    nextQueue.push(merged);
-                                }
+                    let queue = features;
+                    while (queue.length > 1) {
+                        let next = [];
+                        for (let i = 0; i < queue.length; i += 50) {
+                            const chunk = queue.slice(i, i + 50);
+                            if (chunk.length === 1) next.push(chunk[0]);
+                            else {
+                                let merged = chunk[0];
+                                for (let j = 1; j < chunk.length; j++) { try { merged = turf.union(merged, chunk[j]); } catch (e) { } }
+                                next.push(merged);
                             }
-                            processingQueue = nextQueue;
                         }
-
-                        if (processingQueue.length > 0) {
-                            let final = turf.cleanCoords(processingQueue[0]);
-                            final = turf.rewind(final);
-                            features = [final];
-                        }
+                        queue = next;
                     }
-                } catch (e) { console.warn("Union failed", e); }
+                    if (queue.length > 0) features = [turf.rewind(turf.cleanCoords(queue[0]))];
+                } catch (e) { }
             }
 
-            // 3. HARD CLIP (INTERSECTION)
             features.forEach(f => {
                 if (!f) return;
                 try {
-                    let geometryToDraw = null;
-
-                    // V24: Geometry Hygiene (Important for Polygons like Buildings)
-                    f = turf.cleanCoords(f);
-                    f = turf.rewind(f);
-
+                    f = turf.rewind(turf.cleanCoords(f));
                     const type = f.geometry.type;
+                    let geometryToDraw = null;
 
                     if (type === 'Polygon' || type === 'MultiPolygon') {
                         geometryToDraw = turf.intersect(f, maskPolygon);
-                    }
-                    else if (type === 'LineString') {
-                        // (Only if not buffered)
-                        if (turf.booleanWithin(f, maskPolygon)) {
-                            geometryToDraw = f;
-                        } else {
+                    } else if (type === 'LineString') {
+                        if (turf.booleanWithin(f, maskPolygon)) geometryToDraw = f;
+                        else {
                             const split = turf.lineSplit(f, maskPolygon);
                             if (split.features.length > 0) {
                                 split.features.forEach(seg => {
                                     if (turf.booleanPointInPolygon(turf.midpoint(seg), maskPolygon)) {
-                                        processFeatureToPath(seg, projectFn, shouldMerge, parts, (d) => compoundD += d + " ");
+                                        processFeatureToPath(seg, projectFn, shouldMerge, parts, d => compoundD += d + " ");
                                     }
                                 });
                                 return;
@@ -1655,36 +1219,17 @@
                         }
                     }
 
-                    // Safety Check: If intersect returned null/undefined, don't draw
-                    if (geometryToDraw) {
-                        processFeatureToPath(geometryToDraw, projectFn, shouldMerge, parts, (d) => compoundD += d + " ");
-                    }
-                } catch (e) {
-                    // console.warn("Geo error", e);
-                }
+                    if (geometryToDraw) processFeatureToPath(geometryToDraw, projectFn, shouldMerge, parts, d => compoundD += d + " ");
+                } catch (e) { }
             });
 
-            if (shouldMerge && compoundD.trim() !== "") {
-                // If buffered (Fill), we don't need fill=none. Code handles type check.
-                return `<path d="${compoundD}" vector-effect="non-scaling-stroke" />`;
-            } else {
-                return parts.join("\n");
-            }
+            return shouldMerge && compoundD.trim() ? `<path d="${compoundD}" vector-effect="non-scaling-stroke" />` : parts.join("\n");
         }
-
-        // Helper: Meters/Px
-        function metersPerPx(maxLat, minLat) {
-            return ((maxLat - minLat) * 111320) / 1000;
-        }
-
-
 
         function processFeatureToPath(feature, projectFn, shouldMerge, partsList, onCompound) {
             turf.flatten(feature).features.forEach(f => {
-                const coords = f.geometry.coordinates;
-                const type = f.geometry.type;
+                const coords = f.geometry.coordinates, type = f.geometry.type;
                 let d = "";
-
                 if (type === 'Polygon') {
                     coords.forEach(ring => {
                         ring.forEach((pt, i) => {
@@ -1693,20 +1238,14 @@
                         });
                         d += " Z ";
                     });
-                }
-                else if (type === 'LineString') {
+                } else if (type === 'LineString') {
                     coords.forEach((pt, i) => {
                         const [px, py] = projectFn(pt[1], pt[0]);
                         d += (i === 0 ? "M " : " L ") + px.toFixed(2) + " " + py.toFixed(2);
                     });
-                    // Lines don't close automatically
                 }
-
-                if (shouldMerge) {
-                    onCompound(d);
-                } else {
-                    partsList.push(`<path d="${d}" fill="${type === 'Polygon' ? 'black' : 'none'}" vector-effect="non-scaling-stroke" />`);
-                }
+                if (shouldMerge) onCompound(d);
+                else partsList.push(`<path d="${d}" fill="${type === 'Polygon' ? 'black' : 'none'}" vector-effect="non-scaling-stroke" />`);
             });
         }
 
