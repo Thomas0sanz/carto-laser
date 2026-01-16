@@ -22,33 +22,37 @@
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
         :root {
-            --primary: #c026d3;
-            /* fuchsia-600 */
-            --primary-hover: #a21caf;
-            /* fuchsia-700 */
-            --primary-light: #f5d0fe;
-            /* fuchsia-200 */
-            --text: #0f172a;
-            /* slate-900 */
+            --primary: #a855f7;
+            --primary-hover: #9333ea;
+            --primary-light: #f3e8ff;
+            --primary-dark: #7c3aed;
+            --text: #1e293b;
             --text-muted: #64748b;
-            /* slate-500 */
-            --surface: rgba(255, 255, 255, 0.85);
-            --surface-glass: rgba(255, 255, 255, 0.7);
-            --border: rgba(255, 255, 255, 0.3);
-            --shadow: rgba(0, 0, 0, 0.1);
-            --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --text-light: #94a3b8;
+            --surface: rgba(255, 255, 255, 0.95);
+            --surface-glass: rgba(255, 255, 255, 0.75);
+            --surface-hover: rgba(255, 255, 255, 0.9);
+            --border: rgba(255, 255, 255, 0.4);
+            --border-strong: rgba(0, 0, 0, 0.08);
+            --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+            --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.08);
+            --background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-2xl: 24px;
+            --radius-3xl: 32px;
         }
 
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            margin: 0;
-            padding: 0;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             height: 100vh;
             display: flex;
@@ -57,105 +61,262 @@
             overflow: hidden;
         }
 
-        /* Glassmorphism Sidebar */
+        /* === SIDEBAR === */
         #sidebar {
-            width: 400px;
+            width: 420px;
             background: var(--surface-glass);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
             border-right: 1px solid var(--border);
-            box-shadow: 4px 0 30px var(--shadow);
+            box-shadow: var(--shadow);
             display: flex;
             flex-direction: column;
             z-index: 1000;
-            padding: 24px;
-            overflow-y: auto;
+            padding: 0;
+            overflow: hidden;
         }
 
-        #sidebar::-webkit-scrollbar {
-            width: 6px;
+        /* Header */
+        .sidebar-header {
+            padding: 24px 24px 20px;
+            border-bottom: 1px solid var(--border-strong);
+            background: rgba(255, 255, 255, 0.5);
         }
 
-        #sidebar::-webkit-scrollbar-thumb {
-            background: var(--primary-light);
-            border-radius: 3px;
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
         }
 
         h1 {
-            font-size: 1.5rem;
-            margin: 0 0 4px 0;
-            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            font-size: 1.35rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            font-weight: 700;
         }
 
-        h3 {
-            font-size: 0.85rem;
+        .version-tag {
+            font-size: 0.65rem;
             font-weight: 600;
-            color: var(--text);
-            margin: 0 0 12px 0;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: var(--primary);
+            background: var(--primary-light);
+            padding: 3px 8px;
+            border-radius: 20px;
+            margin-left: 8px;
         }
 
-        .control-group {
-            margin-bottom: 20px;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 12px;
-            border: 1px solid var(--border);
-        }
-
-        .info {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-top: 6px;
-            line-height: 1.5;
-        }
-
-        /* Buttons */
-        button {
-            background: linear-gradient(135deg, var(--primary) 0%, #9333ea 100%);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-            width: 100%;
-            transition: all 0.3s ease;
-            margin-bottom: 8px;
-            text-align: center;
+        /* === TABS === */
+        .tabs {
             display: flex;
+            gap: 4px;
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.3);
+            border-bottom: 1px solid var(--border-strong);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: var(--radius-lg);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
             justify-content: center;
+            gap: 6px;
+            box-shadow: none;
+            margin: 0;
+            width: auto;
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--text);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .tab.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* === TAB CONTENT === */
+        .tab-content {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tab-content::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .tab-content::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 5px;
+        }
+
+        /* === CARDS === */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-2xl);
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-strong);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 16px;
+            display: flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 4px 15px rgba(192, 38, 211, 0.3);
         }
 
-        button:hover {
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 2px;
+        }
+
+        /* === SHAPE BUTTONS === */
+        .shape-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .shape-btn {
+            padding: 16px 12px;
+            border: 2px solid var(--border-strong);
+            background: white;
+            border-radius: var(--radius-xl);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            box-shadow: none;
+            margin: 0;
+            width: auto;
+        }
+
+        .shape-btn:hover {
+            border-color: var(--primary-light);
+            background: var(--primary-light);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(192, 38, 211, 0.4);
         }
 
-        button:active {
-            transform: translateY(0);
+        .shape-btn.active {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);
         }
 
-        button.secondary {
-            background: rgba(255, 255, 255, 0.8);
+        .shape-btn .icon {
+            font-size: 1.5rem;
+        }
+
+        .shape-btn .label {
+            font-size: 0.7rem;
+            font-weight: 600;
             color: var(--text);
-            box-shadow: 0 2px 10px var(--shadow);
         }
 
-        button.secondary:hover {
-            background: rgba(255, 255, 255, 1);
+        /* === PRECISION CONTROLS === */
+        .precision-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
         }
 
-        /* Layer List */
+        .precision-control {
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: var(--radius-lg);
+            padding: 14px;
+            border: 1px solid var(--border-strong);
+        }
+
+        .precision-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .precision-label span {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .precision-value {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--primary);
+            background: var(--primary-light);
+            padding: 2px 8px;
+            border-radius: 8px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border-strong);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(168, 85, 247, 0.4);
+        }
+
+        /* === LAYERS === */
         .layer-list {
             display: flex;
             flex-direction: column;
@@ -166,47 +327,72 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            font-size: 0.9rem;
+            padding: 14px 16px;
+            background: white;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-strong);
             cursor: pointer;
-            padding: 10px 12px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.6);
-            border: 1px solid transparent;
             transition: all 0.2s ease;
         }
 
         .layer-item:hover {
-            background: rgba(255, 255, 255, 0.9);
             border-color: var(--primary-light);
+            transform: translateX(4px);
         }
 
         .layer-item input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             accent-color: var(--primary);
             cursor: pointer;
         }
 
-        .badge {
-            font-size: 0.7rem;
-            padding: 3px 8px;
+        .layer-info {
+            flex: 1;
+        }
+
+        .layer-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .layer-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .layer-badge {
+            font-size: 0.65rem;
+            padding: 4px 10px;
             border-radius: 20px;
             background: var(--primary-light);
             color: var(--primary);
-            font-weight: 600;
-            margin-left: auto;
+            font-weight: 700;
         }
 
-        /* Inputs */
+        /* === INPUTS === */
+        .input-group {
+            margin-bottom: 14px;
+        }
+
+        .input-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            display: block;
+        }
+
         input[type="text"],
         input[type="number"],
         select {
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
+            padding: 12px 14px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-lg);
             font-size: 0.9rem;
-            background: rgba(255, 255, 255, 0.8);
+            background: white;
             color: var(--text);
             transition: all 0.2s ease;
         }
@@ -215,68 +401,156 @@
         select:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(192, 38, 211, 0.1);
+            box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.1);
         }
 
-        label {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--text);
-            display: block;
-            margin-bottom: 6px;
-        }
-
-        /* Map */
-        #map {
-            flex-grow: 1;
-            height: 100%;
+        /* === BUTTONS === */
+        .btn-primary {
             width: 100%;
-            z-index: 1;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: var(--radius-xl);
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(168, 85, 247, 0.35);
+            margin: 0;
         }
 
-        /* Search Bar Floating */
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(168, 85, 247, 0.45);
+        }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 12px 20px;
+            background: white;
+            color: var(--text);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-lg);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: none;
+            margin: 0;
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary-light);
+            border-color: var(--primary-light);
+            transform: none;
+        }
+
+        /* === STATUS === */
+        .status-bar {
+            padding: 14px 20px;
+            background: linear-gradient(135deg, var(--primary-light) 0%, #e9d5ff 100%);
+            border-radius: var(--radius-xl);
+            margin-top: 16px;
+            text-align: center;
+        }
+
+        .status-bar .status-text {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* === MAP === */
+        #map {
+            flex: 1;
+            height: 100%;
+            z-index: 1;
+            position: relative;
+        }
+
+        /* === FLOATING SEARCH === */
         .search-container {
             position: absolute;
-            top: 20px;
-            left: 420px;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 1000;
-            width: 350px;
+            width: 400px;
+            margin-left: 210px;
+            animation: levitate 3s ease-in-out infinite;
+        }
+
+        @keyframes levitate {
+
+            0%,
+            100% {
+                transform: translateX(-50%) translateY(0);
+            }
+
+            50% {
+                transform: translateX(-50%) translateY(-6px);
+            }
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: var(--surface);
+            border-radius: var(--radius-3xl);
+            padding: 6px 8px 6px 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
         }
 
         .search-input {
-            width: 100%;
-            padding: 14px 20px;
+            flex: 1;
             border: none;
-            border-radius: 12px;
+            background: transparent;
+            padding: 12px 0;
             font-size: 0.95rem;
-            background: var(--surface-glass);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            box-shadow: 0 4px 20px var(--shadow);
-            transition: all 0.3s ease;
-        }
-
-        .search-input:focus {
+            color: var(--text);
             outline: none;
-            box-shadow: 0 4px 25px rgba(192, 38, 211, 0.2);
         }
 
         .search-input::placeholder {
-            color: var(--text-muted);
+            color: var(--text-light);
+        }
+
+        .search-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+            padding: 0;
+            margin: 0;
+        }
+
+        .search-btn:hover {
+            transform: scale(1.05);
         }
 
         .search-results {
             position: absolute;
-            top: 100%;
+            top: calc(100% + 8px);
             left: 0;
             right: 0;
             background: var(--surface);
-            border-radius: 12px;
-            margin-top: 8px;
-            box-shadow: 0 4px 20px var(--shadow);
-            max-height: 300px;
+            border-radius: var(--radius-2xl);
+            box-shadow: var(--shadow);
+            max-height: 280px;
             overflow-y: auto;
             display: none;
+            border: 1px solid var(--border);
         }
 
         .search-results.active {
@@ -284,10 +558,11 @@
         }
 
         .search-result-item {
-            padding: 12px 16px;
+            padding: 14px 20px;
             cursor: pointer;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            transition: background 0.2s;
+            border-bottom: 1px solid var(--border-strong);
+            transition: all 0.15s ease;
+            font-size: 0.9rem;
         }
 
         .search-result-item:hover {
@@ -298,49 +573,119 @@
             border-bottom: none;
         }
 
-        /* Status */
-        #global-status {
-            padding: 12px 16px;
-            border-radius: 8px;
-            background: linear-gradient(135deg, var(--primary-light) 0%, #e9d5ff 100%);
-            color: var(--primary);
-            font-weight: 600;
-            font-size: 0.85rem;
+        /* === PREVIEW OVERLAY === */
+        .preview-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 900;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-overlay.active {
+            display: flex;
+        }
+
+        .preview-card {
+            background: white;
+            border-radius: var(--radius-3xl);
+            padding: 32px;
+            max-width: 400px;
             text-align: center;
-            margin-top: 8px;
+            box-shadow: var(--shadow);
         }
 
-        #global-status.loading {
-            animation: pulse 1.5s ease-in-out infinite;
+        .preview-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 16px;
         }
 
-        @keyframes pulse {
+        .preview-dimensions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .preview-dim {
+            background: var(--primary-light);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+        }
+
+        .preview-dim .value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .preview-dim .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* === ZONE STATUS === */
+        .zone-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: var(--radius-lg);
+            margin-top: 16px;
+        }
+
+        .zone-status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-light);
+        }
+
+        .zone-status.active .dot {
+            background: #22c55e;
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        @keyframes pulse-dot {
 
             0%,
             100% {
                 opacity: 1;
+                transform: scale(1);
             }
 
             50% {
                 opacity: 0.6;
+                transform: scale(1.2);
             }
         }
 
-        /* Geocoder Override */
+        .zone-status .text {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        /* Hide old geocoder */
         .leaflet-control-geocoder {
             display: none !important;
         }
 
-        /* Version Badge */
-        .version-badge {
-            text-align: center;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-bottom: 16px;
-            padding: 6px 12px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 20px;
-            display: inline-block;
+        /* Machine settings grid */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
         }
     </style>
 </head>
@@ -348,161 +693,233 @@
 <body>
 
     <div id="sidebar">
-        <h1>LaserMap Studio ⬠</h1>
-        <div class="version-badge">Version 32 • Pro</div>
-
-        <!-- Nom du Projet -->
-        <div class="control-group">
-            <h3>📁 Projet</h3>
-            <label>Nom du Projet</label>
-            <input type="text" id="projectName" placeholder="Ex: Paris 12e...">
-        </div>
-
-        <div class="control-group">
-            <h3>📍 Zone</h3>
-            <div class="info">Dessinez une forme sur la carte ou utilisez la barre de recherche.</div>
-        </div>
-
-        <div class="control-group">
-            <h3>2. Zone de Découpe</h3>
-            <div style="display: flex; gap: 8px; margin-bottom:12px;">
-                <button onclick="initPentagon()">
-                    ⬠ Pentagone
-                </button>
-                <button onclick="drawRectangle()" class="secondary">
-                    ⬛ Rectangle
-                </button>
-                <button onclick="initCircle()" class="secondary">
-                    ⬤ Cercle
-                </button>
-            </div>
-
-            <!-- Slider Taille -->
-            <div style="margin-top: 5px;">
-                <div style="display:flex; justify-content:space-between;">
-                    <label style="font-size: 0.9rem; font-weight: 600;">Taille</label>
-                    <span id="radiusVal" style="font-size: 0.8rem; color:#666;">2.0 km</span>
+        <!-- Header -->
+        <div class="sidebar-header">
+            <div class="logo">
+                <div class="logo-icon">⬠</div>
+                <div>
+                    <h1>LaserMap Studio<span class="version-tag">V33</span></h1>
                 </div>
-                <input type="range" id="radiusInput" min="500" max="15000" step="100" value="2000"
-                    style="width: 100%; accent-color: #d946ef;" oninput="updatePentagonTransform()">
             </div>
-
-            <!-- Slider Rotation -->
-            <div style="margin-top: 10px;">
-                <div style="display:flex; justify-content:space-between;">
-                    <label style="font-size: 0.9rem; font-weight: 600;">Rotation</label>
-                    <span id="rotVal" style="font-size: 0.8rem; color:#666;">0°</span>
-                </div>
-                <input type="range" id="rotInput" min="0" max="360" step="5" value="0"
-                    style="width: 100%; accent-color: #d946ef;" oninput="updatePentagonTransform()">
-            </div>
-
-            <div id="zone-status" class="info" style="color: red;">Aucune zone dessinée.</div>
         </div>
 
-        <div class="control-group">
-            <h3>3. Sélectionner les Couches</h3>
-            <div class="info" style="margin-bottom:10px;">
-                Cochez les éléments à inclure dans le téléchargement.
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('zone')">
+                📍 Zone
+            </button>
+            <button class="tab" onclick="switchTab('layers')">
+                📚 Couches
+            </button>
+            <button class="tab" onclick="switchTab('machine')">
+                ⚙️ Machine
+            </button>
+        </div>
+
+        <!-- Tab: Zone -->
+        <div id="tab-zone" class="tab-content active">
+            <div class="card">
+                <div class="card-title">Forme de découpe</div>
+                <div class="shape-grid">
+                    <button class="shape-btn active" onclick="selectShape('pentagon', this)">
+                        <span class="icon">⬠</span>
+                        <span class="label">Pentagone</span>
+                    </button>
+                    <button class="shape-btn" onclick="selectShape('rectangle', this)">
+                        <span class="icon">⬛</span>
+                        <span class="label">Rectangle</span>
+                    </button>
+                    <button class="shape-btn" onclick="selectShape('circle', this)">
+                        <span class="icon">⬤</span>
+                        <span class="label">Cercle</span>
+                    </button>
+                </div>
+
+                <div class="precision-row">
+                    <div class="precision-control">
+                        <div class="precision-label">
+                            <span>Rayon</span>
+                            <span class="precision-value" id="radiusVal">2.0 km</span>
+                        </div>
+                        <input type="range" id="radiusInput" min="500" max="15000" step="100" value="2000"
+                            oninput="updatePentagonTransform()">
+                    </div>
+                    <div class="precision-control">
+                        <div class="precision-label">
+                            <span>Rotation</span>
+                            <span class="precision-value" id="rotVal">0°</span>
+                        </div>
+                        <input type="range" id="rotInput" min="0" max="360" step="5" value="0"
+                            oninput="updatePentagonTransform()">
+                    </div>
+                </div>
+
+                <div class="zone-status" id="zone-status-container">
+                    <span class="dot"></span>
+                    <span class="text" id="zone-status">Aucune zone définie</span>
+                </div>
             </div>
 
-            <div class="layer-list">
-                <label class="layer-item">
-                    <input type="checkbox" id="chk_routes_grands" checked>
-                    <span>🛣️ Autoroutes & Nationales</span>
-                    <span class="badge">Épais</span>
-                </label>
-                <label class="layer-item">
-                    <input type="checkbox" id="chk_routes_secondaires" checked>
-                    <span>🚗 Routes Principales</span>
-                    <span class="badge">Moyen</span>
-                </label>
-                <label class="layer-item">
-                    <input type="checkbox" id="chk_routes_locales" checked>
-                    <span>🏘️ Rues Locales</span>
-                    <span class="badge">Fin</span>
-                </label>
-                <label class="layer-item">
-                    <input type="checkbox" id="chk_eau" checked>
-                    <span>💧 Fleuves & Lacs</span>
-                    <span class="badge">Rempli</span>
-                </label>
-                <label class="layer-item">
-                    <input type="checkbox" id="chk_bati" checked>
-                    <span>🏢 Bâtiments</span>
-                    <span class="badge">Lourd</span>
-                </label>
+            <div class="card">
+                <div class="card-title">Projet</div>
+                <div class="input-group">
+                    <label>Nom du projet</label>
+                    <input type="text" id="projectName" placeholder="Ex: Paris 12e...">
+                </div>
             </div>
 
-            <!-- Options Export -->
-            <div style="margin-top:20px; border-top:1px solid #ddd; padding-top:10px;">
-                <label style="font-size:0.9rem; display:flex; align-items:center; cursor:pointer;">
-                    <input type="checkbox" id="chk_merge" checked style="accent-color:#d946ef; margin-right:8px;">
-                    Fusionner les tracés (1 objet/calque)
-                </label>
+            <button class="btn-secondary" onclick="togglePreview()" style="margin-top: 8px;">
+                👁️ Aperçu dimensions
+            </button>
+        </div>
 
-                <!-- V26: Mode Tracé (Axe vs Surface) -->
-                <div style="margin-top:10px;">
-                    <label style="font-size:0.8rem; font-weight:600;">Géométrie des Routes</label>
-                    <select id="roadMode" style="width:100%; padding:4px; margin-top:4px;">
-                        <option value="surface">🛣️ Bande Physique (Double trait/Surface)</option>
-                        <option value="centerline">📍 Axe Central (Trait unique)</option>
+        <!-- Tab: Couches -->
+        <div id="tab-layers" class="tab-content">
+            <div class="card">
+                <div class="card-title">Routes</div>
+                <div class="layer-list">
+                    <label class="layer-item">
+                        <input type="checkbox" id="chk_routes_grands" checked>
+                        <div class="layer-info">
+                            <div class="layer-name">🛣️ Autoroutes & Nationales</div>
+                            <div class="layer-desc">Voies principales à grande vitesse</div>
+                        </div>
+                        <span class="layer-badge">Épais</span>
+                    </label>
+                    <label class="layer-item">
+                        <input type="checkbox" id="chk_routes_secondaires" checked>
+                        <div class="layer-info">
+                            <div class="layer-name">🚗 Routes Principales</div>
+                            <div class="layer-desc">Départementales et secondaires</div>
+                        </div>
+                        <span class="layer-badge">Moyen</span>
+                    </label>
+                    <label class="layer-item">
+                        <input type="checkbox" id="chk_routes_locales" checked>
+                        <div class="layer-info">
+                            <div class="layer-name">🏘️ Rues Locales</div>
+                            <div class="layer-desc">Résidentielles et piétonnes</div>
+                        </div>
+                        <span class="layer-badge">Fin</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Terrain</div>
+                <div class="layer-list">
+                    <label class="layer-item">
+                        <input type="checkbox" id="chk_eau" checked>
+                        <div class="layer-info">
+                            <div class="layer-name">💧 Fleuves & Lacs</div>
+                            <div class="layer-desc">Cours d'eau et étendues</div>
+                        </div>
+                        <span class="layer-badge">Surface</span>
+                    </label>
+                    <label class="layer-item">
+                        <input type="checkbox" id="chk_bati" checked>
+                        <div class="layer-info">
+                            <div class="layer-name">🏢 Bâtiments</div>
+                            <div class="layer-desc">Emprises bâties</div>
+                        </div>
+                        <span class="layer-badge">Lourd</span>
+                    </label>
+                </div>
+            </div>
+
+            <label class="layer-item" style="margin-top: 12px;">
+                <input type="checkbox" id="chk_merge" checked>
+                <div class="layer-info">
+                    <div class="layer-name">🔗 Fusionner les tracés</div>
+                    <div class="layer-desc">Un seul objet par calque</div>
+                </div>
+            </label>
+        </div>
+
+        <!-- Tab: Machine -->
+        <div id="tab-machine" class="tab-content">
+            <div class="card">
+                <div class="card-title">Mode de rendu</div>
+                <div class="input-group">
+                    <label>Géométrie des routes</label>
+                    <select id="roadMode">
+                        <option value="surface">🛣️ Surface (Bande physique)</option>
+                        <option value="centerline">📍 Axe central (Trait)</option>
                     </select>
                 </div>
-
-                <!-- V21: Dimensions Physiques -->
-                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-top:10px;">
-                    <div>
-                        <label style="font-size:0.8rem; font-weight:600;">Largeur (cm)</label>
-                        <input type="number" id="exportWidth" value="10" min="1" max="100"
-                            style="width:100%; padding:4px;">
-                    </div>
-                    <div>
-                        <label style="font-size:0.8rem; font-weight:600;">Épaisseur (mm)</label>
-                        <input type="number" id="roadThick" value="4" min="0.1" max="20" step="0.1"
-                            style="width:100%; padding:4px;">
-                    </div>
-                    <div>
-                        <label style="font-size:0.8rem; font-weight:600;">Marge Cadre (mm)</label>
-                        <input type="number" id="frameMargin" value="5" min="0" max="50" step="1"
-                            style="width:100%; padding:4px;"
-                            title="Taille du pentagone externe pour l'opération Différence">
-                    </div>
-                </div>
-
-                <!-- V23: Style export -->
-                <div style="margin-top:10px;">
-                    <label style="font-size:0.8rem; font-weight:600;">Style de Rendu</label>
-                    <select id="renderStyle" style="width:100%; padding:4px; margin-top:4px;">
-                        <option value="stroke">⭕ Contour (Découpe Vectorielle)</option>
-                        <option value="fill">⬛ Remplissage (Surface/Gravure)</option>
+                <div class="input-group">
+                    <label>Style de découpe</label>
+                    <select id="renderStyle">
+                        <option value="stroke">⭕ Contour (Découpe laser)</option>
+                        <option value="fill">⬛ Remplissage (Gravure)</option>
                     </select>
                 </div>
             </div>
 
-            <button onclick="downloadSelectedLayers()"
-                style="width: 100%; margin-top: 20px; padding: 12px; background: #d946ef; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                Télécharger SVG (Batch)
+            <div class="card">
+                <div class="card-title">Dimensions export</div>
+                <div class="settings-grid">
+                    <div class="input-group">
+                        <label>Largeur (cm)</label>
+                        <input type="number" id="exportWidth" value="10" min="1" max="100">
+                    </div>
+                    <div class="input-group">
+                        <label>Épaisseur route (mm)</label>
+                        <input type="number" id="roadThick" value="4" min="0.1" max="20" step="0.1">
+                    </div>
+                    <div class="input-group">
+                        <label>Marge cadre (mm)</label>
+                        <input type="number" id="frameMargin" value="5" min="0" max="50" step="1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Fond de carte</div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-secondary" onclick="setLayer('light')">☀️ Clair</button>
+                    <button class="btn-secondary" onclick="setLayer('dark')">🌙 Sombre</button>
+                </div>
+            </div>
+
+            <button class="btn-primary" onclick="downloadSelectedLayers()" style="margin-top: 16px;">
+                ⬇️ Exporter SVG
             </button>
 
-            <div id="global-status" class="info" style="font-weight: bold; color: var(--primary); margin-top:10px;">
+            <div class="status-bar" id="global-status-bar" style="display: none;">
+                <span class="status-text" id="global-status"></span>
             </div>
         </div>
-
-        <div class="control-group">
-            <h3>4. Rendu Visuel</h3>
-            <div style="display:flex; gap:10px">
-                <button class="secondary" onclick="setLayer('light')">Blanc</button>
-                <button class="secondary" onclick="setLayer('dark')">Noir</button>
-            </div>
-        </div>
-
     </div>
 
     <!-- Floating Search Bar -->
     <div class="search-container">
-        <input type="text" class="search-input" id="searchInput" placeholder="🔍 Rechercher une adresse...">
+        <div class="search-box">
+            <input type="text" class="search-input" id="searchInput" placeholder="Rechercher une adresse...">
+            <button class="search-btn">🔍</button>
+        </div>
         <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <!-- Preview Overlay -->
+    <div class="preview-overlay" id="previewOverlay" onclick="togglePreview()">
+        <div class="preview-card" onclick="event.stopPropagation()">
+            <div class="preview-title">📐 Dimensions d'export</div>
+            <div class="preview-dimensions">
+                <div class="preview-dim">
+                    <div class="value" id="preview-width">10</div>
+                    <div class="label">Largeur (cm)</div>
+                </div>
+                <div class="preview-dim">
+                    <div class="value" id="preview-height">--</div>
+                    <div class="label">Hauteur (cm)</div>
+                </div>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
+                Échelle: <strong id="preview-scale">1cm = --m</strong>
+            </div>
+            <button class="btn-secondary" onclick="togglePreview()">Fermer</button>
+        </div>
     </div>
 
     <div id="map"></div>
@@ -525,6 +942,75 @@
             });
             layers[name].addTo(map);
         }
+
+        // V33: Tab Switching
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.closest('.tab').classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        // V33: Shape Selection
+        function selectShape(shape, btn) {
+            // Update buttons
+            document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Trigger shape
+            if (shape === 'pentagon') initPentagon();
+            else if (shape === 'rectangle') drawRectangle();
+            else if (shape === 'circle') initCircle();
+        }
+
+        // V33: Preview Toggle
+        function togglePreview() {
+            const overlay = document.getElementById('previewOverlay');
+            overlay.classList.toggle('active');
+
+            if (overlay.classList.contains('active')) {
+                // Calculate dimensions
+                const widthCm = parseFloat(document.getElementById('exportWidth').value) || 10;
+                document.getElementById('preview-width').textContent = widthCm;
+
+                if (selectedBounds) {
+                    const latSpan = selectedBounds.getNorth() - selectedBounds.getSouth();
+                    const lonSpan = selectedBounds.getEast() - selectedBounds.getWest();
+                    const aspectRatio = latSpan / lonSpan;
+                    const heightCm = (widthCm * aspectRatio).toFixed(1);
+                    document.getElementById('preview-height').textContent = heightCm;
+
+                    // Calculate scale
+                    const metersPerDegree = 111320;
+                    const realWidthM = lonSpan * metersPerDegree * Math.cos((selectedBounds.getNorth() + selectedBounds.getSouth()) / 2 * Math.PI / 180);
+                    const scalePerCm = (realWidthM / widthCm).toFixed(0);
+                    document.getElementById('preview-scale').textContent = `1cm = ${scalePerCm}m`;
+                } else {
+                    document.getElementById('preview-height').textContent = '--';
+                    document.getElementById('preview-scale').textContent = '1cm = --m';
+                }
+            }
+        }
+
+        // V33: Update Zone Status
+        function updateZoneStatus(message, isActive) {
+            const container = document.getElementById('zone-status-container');
+            const text = document.getElementById('zone-status');
+            text.textContent = message;
+            container.classList.toggle('active', isActive);
+        }
+
+        // V33: Show Status Bar
+        function showStatus(message) {
+            const bar = document.getElementById('global-status-bar');
+            const text = document.getElementById('global-status');
+            text.textContent = message;
+            bar.style.display = 'block';
+        }
+
 
         // V32: Custom Address Search (Nominatim)
         const searchInput = document.getElementById('searchInput');
@@ -632,8 +1118,7 @@
             selectedBounds = polygon.getBounds();
 
             isPentagonActive = true;
-            document.getElementById('zone-status').innerHTML = "⬠ Pentagone Actif (" + (rMeters / 1000) + "km)";
-            document.getElementById('zone-status').style.color = "#c026d3";
+            updateZoneStatus("⬠ Pentagone (" + (rMeters / 1000).toFixed(1) + " km)", true);
         }
 
         // --- CIRCLE LOGIC (RESIZABLE) ---
@@ -644,8 +1129,7 @@
             isPentagonActive = false;
             pentagonCenter = null;
             isCircleActive = true;
-            document.getElementById('zone-status').innerHTML = "⬤ Cliquez sur la carte pour placer le cercle";
-            document.getElementById('zone-status').style.color = "#c026d3";
+            updateZoneStatus("⬤ Cliquez sur la carte", false);
         }
 
         function drawCircle(center) {
@@ -666,8 +1150,7 @@
             selectedBounds = polygon.getBounds();
 
             isCircleActive = true;
-            document.getElementById('zone-status').innerHTML = "⬤ Cercle Actif (" + (rMeters / 1000) + "km)";
-            document.getElementById('zone-status').style.color = "#c026d3";
+            updateZoneStatus("⬤ Cercle (" + (rMeters / 1000).toFixed(1) + " km)", true);
         }
 
         function updatePentagonTransform() {
@@ -694,8 +1177,7 @@
             selectedBounds = e.layer.getBounds();
             isPentagonActive = false;
             isCircleActive = false;
-            document.getElementById('zone-status').innerHTML = "✅ Zone Valide (Manuel)";
-            document.getElementById('zone-status').style.color = "green";
+            updateZoneStatus("✅ Zone définie manuellement", true);
         });
 
         // V32: Click to place circle
