@@ -1079,9 +1079,30 @@
                 const query = `[out:json][timeout:900]; (${queryBody}); out geom tags;`;
 
                 try {
-                    const resp = await fetch(`https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(query)}`);
-                    if (!resp.ok) throw new Error("API Error " + resp.status);
-                    const data = await resp.json();
+                    let resp, data;
+                    try {
+                        resp = await fetch(`https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(query)}`);
+                        if (!resp.ok) throw new Error("Primary API Error " + resp.status);
+                        const text = await resp.text();
+                        try {
+                            data = JSON.parse(text);
+                        } catch (e) {
+                            console.warn("Primary API returned non-JSON:", text.substring(0, 100));
+                            throw new Error("Primary API Invalid JSON");
+                        }
+                    } catch (e) {
+                        console.warn("Primary API failed, trying fallback...", e);
+                        status.textContent = "⚠️ Primary API failed, trying fallback...";
+                        resp = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+                        if (!resp.ok) throw new Error("Fallback API Error " + resp.status);
+                        const text = await resp.text();
+                        try {
+                            data = JSON.parse(text);
+                        } catch (err) {
+                            console.error("Fallback API response:", text.substring(0, 200));
+                            throw new Error("Fallback API Invalid JSON: " + text.substring(0, 50));
+                        }
+                    }
 
                     status.textContent = `${layer.name}: ${data.elements?.length || 0} items...`;
 
