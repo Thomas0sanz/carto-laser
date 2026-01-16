@@ -161,9 +161,9 @@
 <body>
 
     <div id="sidebar">
-        <h1>Carte Laser (OSM) V29 ⬠</h1>
-        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V29 (Fusion puis
-            Offset)</div>
+        <h1>Carte Laser (OSM) V30 ⬠</h1>
+        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V30 (Cadre +
+            Différence)</div>
 
         <!-- Nom du Projet -->
         <div style="margin-bottom: 20px;">
@@ -262,7 +262,7 @@
                 </div>
 
                 <!-- V21: Dimensions Physiques -->
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-top:10px;">
                     <div>
                         <label style="font-size:0.8rem; font-weight:600;">Largeur (cm)</label>
                         <input type="number" id="exportWidth" value="10" min="1" max="100"
@@ -272,6 +272,12 @@
                         <label style="font-size:0.8rem; font-weight:600;">Épaisseur (mm)</label>
                         <input type="number" id="roadThick" value="4" min="0.1" max="20" step="0.1"
                             style="width:100%; padding:4px;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:600;">Marge Cadre (mm)</label>
+                        <input type="number" id="frameMargin" value="5" min="0" max="50" step="1"
+                            style="width:100%; padding:4px;"
+                            title="Taille du pentagone externe pour l'opération Différence">
                     </div>
                 </div>
 
@@ -453,6 +459,7 @@
             // V21 Inputs
             const targetWidthCm = parseFloat(document.getElementById('exportWidth').value) || 10;
             const roadThickMm = parseFloat(document.getElementById('roadThick').value) || 4;
+            const frameMarginMm = parseFloat(document.getElementById('frameMargin').value) || 5; // V30
             const renderStyle = document.getElementById('renderStyle').value; // 'fill' or 'stroke'
             const roadMode = document.getElementById('roadMode').value; // 'surface' or 'centerline' (V26)
 
@@ -462,7 +469,7 @@
             }
 
             const status = document.getElementById("global-status");
-            status.textContent = "Démarrage V26...";
+            status.textContent = "Démarrage V30...";
 
             // Prepare SVG Dimensions
             const bounds = selectedBounds || map.getBounds();
@@ -555,7 +562,7 @@
                     }
 
                     // Generate Geometry
-                    const groupContent = processLayerGeometry(data, layer, maskPolygon, project, metersPerPx(maxLat, minLat), shouldMerge, useBuffer, radius);
+                    const groupContent = processLayerGeometry(data, layer, maskPolygon, project, metersPerPx(maxLat, minLat), shouldMerge, useBuffer, radius, frameMarginMm, metersPerCm);
 
                     if (groupContent) {
                         // V23: Style Logic
@@ -594,7 +601,7 @@
   <!-- Cadre d'Alignement -->
   <path d="${framePathD}" fill="none" stroke="red" stroke-width="0.5" vector-effect="non-scaling-stroke" id="frame_alignment" />
 </svg>`;
-                        const filename = `${safeProjName}_${layer.name}_V29_${dateStr}.svg`;
+                        const filename = `${safeProjName}_${layer.name}_V30_${dateStr}.svg`;
                         downloadStringAsFile(layerSVG, filename);
                     } else {
                         console.warn("Aucune géométrie pour " + layer.name);
@@ -611,15 +618,15 @@
             }
 
             if (errorCount > 0) alert("Attention : " + errorCount + " calque(s) ont échoué.");
-            status.textContent = errorCount === 0 ? "✅ Export V29 Terminé !" : "⚠️ Terminé avec erreurs.";
+            status.textContent = errorCount === 0 ? "✅ Export V30 Terminé !" : "⚠️ Terminé avec erreurs.";
         }
 
         function metersPerPx(maxLat, minLat) {
             return ((maxLat - minLat) * 111320) / 1000;
         }
 
-        // --- GEOMETRY PROCESSOR (V27: Robustness) ---
-        function processLayerGeometry(data, layer, maskPolygon, projectFn, mPerPx, shouldMerge, useBuffer, bufferRadius) {
+        // --- GEOMETRY PROCESSOR (V30: Robustness + Difference) ---
+        function processLayerGeometry(data, layer, maskPolygon, projectFn, mPerPx, shouldMerge, useBuffer, bufferRadius, frameMarginMm, metersPerCm) {
             if (!data.elements) return "";
 
             let parts = [];
@@ -701,14 +708,47 @@
                         }
 
                         if (processingQueue.length > 0) {
-                            let final = turf.cleanCoords(processingQueue[0]);
-                            final = turf.rewind(final);
-                            features = [final];
-                            console.log('V29: Road surface created successfully.');
+                            let roadSurface = turf.cleanCoords(processingQueue[0]);
+                            roadSurface = turf.rewind(roadSurface);
+
+                            // V30: Create outer frame and apply Difference
+                            // Calculate frame margin in meters
+                            const frameMarginMeters = (frameMarginMm / 10) * metersPerCm;
+
+                            if (frameMarginMeters > 0) {
+                                console.log(`V30: Creating outer frame with ${frameMarginMm}mm margin (${frameMarginMeters.toFixed(1)}m)...`);
+                                try {
+                                    // Create outer pentagon by buffering the mask
+                                    const outerFrame = turf.buffer(maskPolygon, frameMarginMeters, {
+                                        units: 'meters',
+                                        steps: 16
+                                    });
+
+                                    // Apply Difference: OuterFrame - RoadSurface
+                                    const result = turf.difference(outerFrame, roadSurface);
+
+                                    if (result) {
+                                        features = [result];
+                                        console.log('V30: Difference operation successful.');
+                                    } else {
+                                        // Fallback to just the road surface if difference fails
+                                        features = [roadSurface];
+                                        console.warn('V30: Difference returned null, using road surface.');
+                                    }
+                                } catch (diffErr) {
+                                    console.warn('V30: Difference failed', diffErr);
+                                    features = [roadSurface];
+                                }
+                            } else {
+                                // No frame margin, just use road surface
+                                features = [roadSurface];
+                            }
+
+                            console.log('V30: Road processing complete.');
                         }
                     }
                 } catch (e) {
-                    console.warn("V29 Road processing failed", e);
+                    console.warn("V30 Road processing failed", e);
                 }
             }
             // 2b. WATER: Keep existing union logic
