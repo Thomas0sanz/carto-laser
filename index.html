@@ -161,8 +161,8 @@
 <body>
 
     <div id="sidebar">
-        <h1>Carte Laser (OSM) V28 ⬠</h1>
-        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V28 (Méthode
+        <h1>Carte Laser (OSM) V29 ⬠</h1>
+        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V29 (Fusion puis
             Offset)</div>
 
         <!-- Nom du Projet -->
@@ -594,7 +594,7 @@
   <!-- Cadre d'Alignement -->
   <path d="${framePathD}" fill="none" stroke="red" stroke-width="0.5" vector-effect="non-scaling-stroke" id="frame_alignment" />
 </svg>`;
-                        const filename = `${safeProjName}_${layer.name}_V28_${dateStr}.svg`;
+                        const filename = `${safeProjName}_${layer.name}_V29_${dateStr}.svg`;
                         downloadStringAsFile(layerSVG, filename);
                     } else {
                         console.warn("Aucune géométrie pour " + layer.name);
@@ -611,7 +611,7 @@
             }
 
             if (errorCount > 0) alert("Attention : " + errorCount + " calque(s) ont échoué.");
-            status.textContent = errorCount === 0 ? "✅ Export V28 Terminé !" : "⚠️ Terminé avec erreurs.";
+            status.textContent = errorCount === 0 ? "✅ Export V29 Terminé !" : "⚠️ Terminé avec erreurs.";
         }
 
         function metersPerPx(maxLat, minLat) {
@@ -651,30 +651,68 @@
                     }
                 }
                 else {
-                    // ROADS LOGIC - V28: Use Line Offset instead of Buffer
+                    // ROADS LOGIC - V29: Collect lines first, buffer later
                     try {
                         const line = turf.lineString(coords);
                         const cleanLine = turf.cleanCoords(line);
-                        if (useBuffer && bufferRadius > 0) {
-                            // Create two parallel offset lines (left edge + right edge)
-                            try {
-                                const leftEdge = turf.lineOffset(cleanLine, bufferRadius, { units: 'meters' });
-                                const rightEdge = turf.lineOffset(cleanLine, -bufferRadius, { units: 'meters' });
-                                features.push(leftEdge);
-                                features.push(rightEdge);
-                            } catch (offsetErr) {
-                                // Fallback: just use center line
-                                features.push(cleanLine);
-                            }
-                        } else {
-                            features.push(cleanLine);
-                        }
+                        features.push(cleanLine); // Just collect the line
                     } catch (e) { }
                 }
             });
 
-            // 2. UNION (Water Only - V28: Roads no longer use union)
-            if (layer.type === 'eau' && features.length > 0) {
+            // 2. ROADS: Merge lines first, then buffer the whole thing (V29)
+            if (layer.type.startsWith('routes') && useBuffer && bufferRadius > 0 && features.length > 0) {
+                try {
+                    console.log(`V29: Processing ${features.length} road segments...`);
+
+                    // Step 1: Combine all lines into a FeatureCollection
+                    const lineCollection = turf.featureCollection(features);
+
+                    // Step 2: Buffer the entire collection at once
+                    // This creates a unified buffer with rounded caps that connect at intersections
+                    const bufferedCollection = turf.buffer(lineCollection, bufferRadius, {
+                        units: 'meters',
+                        steps: 16  // Smooth rounded caps
+                    });
+
+                    // Step 3: Union all the buffered polygons into one
+                    if (bufferedCollection && bufferedCollection.features && bufferedCollection.features.length > 0) {
+                        console.log(`V29: Buffered into ${bufferedCollection.features.length} polygons, now unioning...`);
+
+                        // Batch union for stability
+                        const BATCH_SIZE = 50;
+                        let processingQueue = bufferedCollection.features;
+
+                        while (processingQueue.length > 1) {
+                            let nextQueue = [];
+                            for (let i = 0; i < processingQueue.length; i += BATCH_SIZE) {
+                                const chunk = processingQueue.slice(i, i + BATCH_SIZE);
+                                if (chunk.length === 1) {
+                                    nextQueue.push(chunk[0]);
+                                } else {
+                                    let merged = chunk[0];
+                                    for (let j = 1; j < chunk.length; j++) {
+                                        try { merged = turf.union(merged, chunk[j]); } catch (e) { }
+                                    }
+                                    nextQueue.push(merged);
+                                }
+                            }
+                            processingQueue = nextQueue;
+                        }
+
+                        if (processingQueue.length > 0) {
+                            let final = turf.cleanCoords(processingQueue[0]);
+                            final = turf.rewind(final);
+                            features = [final];
+                            console.log('V29: Road surface created successfully.');
+                        }
+                    }
+                } catch (e) {
+                    console.warn("V29 Road processing failed", e);
+                }
+            }
+            // 2b. WATER: Keep existing union logic
+            else if (layer.type === 'eau' && features.length > 0) {
                 try {
                     if (features.length > 4000) {
                         console.warn("Trop d'éléments pour Union (" + features.length + "). Skip Union.");
