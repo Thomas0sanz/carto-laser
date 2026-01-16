@@ -161,9 +161,9 @@
 <body>
 
     <div id="sidebar">
-        <h1>Carte Laser (OSM) V26 ⬠</h1>
-        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V26 (Axes vs
-            Surfaces)</div>
+        <h1>Carte Laser (OSM) V28 ⬠</h1>
+        <div style="text-align:center; font-size:0.8rem; opacity:0.7; margin-bottom:10px;">Version : V28 (Méthode
+            Offset)</div>
 
         <!-- Nom du Projet -->
         <div style="margin-bottom: 20px;">
@@ -594,7 +594,7 @@
   <!-- Cadre d'Alignement -->
   <path d="${framePathD}" fill="none" stroke="red" stroke-width="0.5" vector-effect="non-scaling-stroke" id="frame_alignment" />
 </svg>`;
-                        const filename = `${safeProjName}_${layer.name}_V27_${dateStr}.svg`;
+                        const filename = `${safeProjName}_${layer.name}_V28_${dateStr}.svg`;
                         downloadStringAsFile(layerSVG, filename);
                     } else {
                         console.warn("Aucune géométrie pour " + layer.name);
@@ -611,7 +611,7 @@
             }
 
             if (errorCount > 0) alert("Attention : " + errorCount + " calque(s) ont échoué.");
-            status.textContent = errorCount === 0 ? "✅ Export V27 Terminé !" : "⚠️ Terminé avec erreurs.";
+            status.textContent = errorCount === 0 ? "✅ Export V28 Terminé !" : "⚠️ Terminé avec erreurs.";
         }
 
         function metersPerPx(maxLat, minLat) {
@@ -651,33 +651,37 @@
                     }
                 }
                 else {
-                    // ROADS LOGIC
+                    // ROADS LOGIC - V28: Use Line Offset instead of Buffer
                     try {
                         const line = turf.lineString(coords);
-                        if (useBuffer) {
-                            // Convert Line to Buffered Polygon
-                            const cleanLine = turf.cleanCoords(line);
-                            const buf = turf.buffer(cleanLine, bufferRadius, { units: 'meters', steps: 12 });
-                            features.push(buf);
+                        const cleanLine = turf.cleanCoords(line);
+                        if (useBuffer && bufferRadius > 0) {
+                            // Create two parallel offset lines (left edge + right edge)
+                            try {
+                                const leftEdge = turf.lineOffset(cleanLine, bufferRadius, { units: 'meters' });
+                                const rightEdge = turf.lineOffset(cleanLine, -bufferRadius, { units: 'meters' });
+                                features.push(leftEdge);
+                                features.push(rightEdge);
+                            } catch (offsetErr) {
+                                // Fallback: just use center line
+                                features.push(cleanLine);
+                            }
                         } else {
-                            features.push(line);
+                            features.push(cleanLine);
                         }
                     } catch (e) { }
                 }
             });
 
-            // 2. UNION (Water OR Buffered Roads)
-            // V27: Batch Union for efficiency and stability
-            if ((layer.type === 'eau' || useBuffer) && features.length > 0) {
+            // 2. UNION (Water Only - V28: Roads no longer use union)
+            if (layer.type === 'eau' && features.length > 0) {
                 try {
                     if (features.length > 4000) {
                         console.warn("Trop d'éléments pour Union (" + features.length + "). Skip Union.");
                     } else {
-                        // Batch size tuning
                         const BATCH_SIZE = 50;
                         let processingQueue = features;
 
-                        // Recursive batching until 1 feature remains
                         while (processingQueue.length > 1) {
                             let nextQueue = [];
                             for (let i = 0; i < processingQueue.length; i += BATCH_SIZE) {
@@ -758,112 +762,7 @@
             return ((maxLat - minLat) * 111320) / 1000;
         }
 
-        // --- GEOMETRY PROCESSOR (CLIPPING) ---
-        function processLayerGeometry(data, layer, maskPolygon, projectFn, mPerPx, shouldMerge) {
-            if (!data.elements) return "";
 
-            let parts = []; // SVG Paths
-            let compoundD = ""; // Accumulator for merged path
-
-            // 1. Convert to Turf Features
-            let features = [];
-            data.elements.forEach(el => {
-                if (!el.geometry || el.geometry.length < 2) return;
-                const coords = el.geometry.map(p => [p.lon, p.lat]);
-
-                // Water/Buildings -> Polygons
-                if (layer.fill || (layer.type === 'eau')) {
-                    // logic for Water buffering (V12)
-                    const isLinearWater = (layer.type === 'eau' && (el.tags.waterway === 'river' || el.tags.waterway === 'canal' || el.tags.waterway === 'stream'));
-
-                    if (isLinearWater) {
-                        let pxWidth = 8;
-                        if (el.tags.waterway === 'river') pxWidth = 25;
-                        if (el.tags.waterway === 'canal') pxWidth = 15;
-                        try {
-                            const line = turf.lineString(coords);
-                            const buf = turf.buffer(line, (pxWidth * mPerPx) / 2, { units: 'meters' });
-                            features.push(buf);
-                        } catch (e) { }
-                    } else {
-                        // Normal Polygon (Lake/Building)
-                        if (coords.length > 2) {
-                            if (coords[0][0] !== coords[coords.length - 1][0]) coords.push(coords[0]);
-                            try { features.push(turf.polygon([coords])); } catch (e) { }
-                        }
-                    }
-                }
-                else {
-                    // Roads -> LineStrings
-                    try { features.push(turf.lineString(coords)); } catch (e) { }
-                }
-            });
-
-            // 2. UNION (For Water Only)
-            if (layer.type === 'eau' && features.length > 0) {
-                try {
-                    let merged = features[0];
-                    for (let i = 1; i < features.length; i++) merged = turf.union(merged, features[i]);
-                    features = [merged]; // Keep only the merged result
-                } catch (e) { }
-            }
-
-            // 3. HARD CLIP (INTERSECTION)
-            features.forEach(f => {
-                if (!f) return;
-
-                try {
-                    let geometryToDraw = null;
-
-                    if (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon') {
-                        // Polygon Clipping
-                        geometryToDraw = turf.intersect(f, maskPolygon);
-                    }
-                    else if (f.geometry.type === 'LineString') {
-                        // Line Clipping
-                        if (turf.booleanWithin(f, maskPolygon)) {
-                            geometryToDraw = f;
-                        } else {
-                            // Split logic with Fallback
-                            const split = turf.lineSplit(f, maskPolygon);
-                            let segments = [];
-                            if (split.features.length > 0) segments = split.features;
-                            else {
-                                // Split failed? Or Line intersects but split returns nothing?
-                                // Fallback: If it intersects, just keep the whole line for now (Safer than deleting)
-                                // But user wants clipping.
-                                // If booleanIntersects(f, maskPolygon) is true, we should try to keep it.
-                                if (turf.booleanIntersects(f, maskPolygon)) segments = [f];
-                            }
-
-                            segments.forEach(seg => {
-                                const mid = turf.midpoint(seg);
-                                if (turf.booleanPointInPolygon(mid, maskPolygon)) {
-                                    // Process this segment
-                                    processFeatureToPath(seg, projectFn, shouldMerge, parts, (d) => compoundD += d + " ");
-                                }
-                            });
-                            return; // Skip standard processing for split lines
-                        }
-                    }
-
-                    if (geometryToDraw) {
-                        processFeatureToPath(geometryToDraw, projectFn, shouldMerge, parts, (d) => compoundD += d + " ");
-                    }
-
-                } catch (e) {
-                    // On geometric error, fallback to keeping the original if it touches the box
-                    // console.warn("Geo error", e); 
-                }
-            });
-
-            if (shouldMerge && compoundD.trim() !== "") {
-                // Return ONE path
-                return `<path d="${compoundD}" vector-effect="non-scaling-stroke" />`;
-            } else {
-                return parts.join("\n");
-            }
-        }
 
         function processFeatureToPath(feature, projectFn, shouldMerge, partsList, onCompound) {
             turf.flatten(feature).features.forEach(f => {
