@@ -365,12 +365,15 @@
 
         <div class="control-group">
             <h3>2. Zone de Découpe</h3>
-            <div style="display: flex; gap: 10px; margin-bottom:10px;">
-                <button onclick="initPentagon()" style="background-color: #d946ef;">
+            <div style="display: flex; gap: 8px; margin-bottom:12px;">
+                <button onclick="initPentagon()">
                     ⬠ Pentagone
                 </button>
                 <button onclick="drawRectangle()" class="secondary">
-                    ⬛ Carré
+                    ⬛ Rectangle
+                </button>
+                <button onclick="initCircle()" class="secondary">
+                    ⬤ Cercle
                 </button>
             </div>
 
@@ -583,23 +586,16 @@
 
         function drawRectangle() {
             isPentagonActive = false;
+            isCircleActive = false;
             pentagonCenter = null;
+            circleCenter = null;
             new L.Draw.Rectangle(map, { shapeOptions: { color: '#2563eb' } }).enable();
         }
 
-        function updatePentagonTransform() {
-            const r = document.getElementById('radiusInput').value;
-            const rot = document.getElementById('rotInput').value;
-
-            document.getElementById('radiusVal').textContent = (r / 1000).toFixed(1) + " km";
-            document.getElementById('rotVal').textContent = rot + "°";
-
-            if (isPentagonActive && pentagonCenter) {
-                drawPentagon(pentagonCenter);
-            }
-        }
-
         function initPentagon() {
+            isPentagonActive = true;
+            isCircleActive = false;
+            circleCenter = null;
             const center = map.getCenter();
             drawPentagon(center);
         }
@@ -608,6 +604,8 @@
         function drawPentagon(center) {
             drawnItems.clearLayers();
             pentagonCenter = center;
+            circleCenter = null;
+            isCircleActive = false;
 
             // Radius from slider
             const rMeters = parseInt(document.getElementById('radiusInput').value);
@@ -628,15 +626,65 @@
 
                 points.push([center.lat + latOffset, center.lng + lonOffset]);
             }
-            const polygon = L.polygon(points, { color: '#d946ef', weight: 3 });
+            const polygon = L.polygon(points, { color: '#c026d3', weight: 3, fillOpacity: 0.1 });
             drawnItems.addLayer(polygon);
             selectedShapeLayer = polygon;
             selectedBounds = polygon.getBounds();
 
             isPentagonActive = true;
             document.getElementById('zone-status').innerHTML = "⬠ Pentagone Actif (" + (rMeters / 1000) + "km)";
-            document.getElementById('zone-status').style.color = "#d946ef";
+            document.getElementById('zone-status').style.color = "#c026d3";
         }
+
+        // --- CIRCLE LOGIC (RESIZABLE) ---
+        let isCircleActive = false;
+        let circleCenter = null;
+
+        function initCircle() {
+            isPentagonActive = false;
+            pentagonCenter = null;
+            isCircleActive = true;
+            document.getElementById('zone-status').innerHTML = "⬤ Cliquez sur la carte pour placer le cercle";
+            document.getElementById('zone-status').style.color = "#c026d3";
+        }
+
+        function drawCircle(center) {
+            drawnItems.clearLayers();
+            circleCenter = center;
+            pentagonCenter = null;
+            isPentagonActive = false;
+
+            const rMeters = parseInt(document.getElementById('radiusInput').value);
+
+            // Use Turf to create a proper circle polygon (for clipping compatibility)
+            const circleGeoJSON = turf.circle([center.lng, center.lat], rMeters / 1000, { units: 'kilometers', steps: 64 });
+            const coords = circleGeoJSON.geometry.coordinates[0].map(c => [c[1], c[0]]);
+
+            const polygon = L.polygon(coords, { color: '#c026d3', weight: 3, fillOpacity: 0.1 });
+            drawnItems.addLayer(polygon);
+            selectedShapeLayer = polygon;
+            selectedBounds = polygon.getBounds();
+
+            isCircleActive = true;
+            document.getElementById('zone-status').innerHTML = "⬤ Cercle Actif (" + (rMeters / 1000) + "km)";
+            document.getElementById('zone-status').style.color = "#c026d3";
+        }
+
+        function updatePentagonTransform() {
+            const r = document.getElementById('radiusInput').value;
+            const rot = document.getElementById('rotInput').value;
+
+            document.getElementById('radiusVal').textContent = (r / 1000).toFixed(1) + " km";
+            document.getElementById('rotVal').textContent = rot + "°";
+
+            if (isPentagonActive && pentagonCenter) {
+                drawPentagon(pentagonCenter);
+            }
+            if (isCircleActive && circleCenter) {
+                drawCircle(circleCenter);
+            }
+        }
+
 
         // Events
         map.on(L.Draw.Event.CREATED, function (e) {
@@ -645,10 +693,17 @@
             selectedShapeLayer = e.layer;
             selectedBounds = e.layer.getBounds();
             isPentagonActive = false;
+            isCircleActive = false;
             document.getElementById('zone-status').innerHTML = "✅ Zone Valide (Manuel)";
             document.getElementById('zone-status').style.color = "green";
         });
 
+        // V32: Click to place circle
+        map.on('click', function (e) {
+            if (isCircleActive && !circleCenter) {
+                drawCircle(e.latlng);
+            }
+        });
 
         // --- MULTI-FILE EXPORT LOGIC (DESTRUCTIVE CLIP + BATCH + ALIGNMENT FRAME) ---
 
